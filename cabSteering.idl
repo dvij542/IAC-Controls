@@ -1,0 +1,33 @@
+module IndyDS{
+    struct CabToSteeringCorrective {
+        @min(-1.7E308)
+        @max(1.7E308)
+        double AdditiveSteeringWheelAccel;    //@ID 0
+        @min(-1.7E308)
+        @max(1.7E308)
+        double AdditiveSteeringWheelAngle;    //@ID 1
+        @min(-1.7E308)
+        @max(1.7E308)
+        double AdditiveSteeringWheelSpeed;    //@ID 2
+        @min(-1.7E308)
+        @max(1.7E308)
+        double AdditiveSteeringWheelTorque;    //@ID 3
+        @min(-1.7E308)
+        @max(1.7E308)
+        double MultiplicativeSteeringWheelAccel;    //@ID 4
+        @min(-1.7E308)
+        @max(1.7E308)
+        double MultiplicativeSteeringWheelAngle;    //@ID 5
+        @min(-1.7E308)
+        @max(1.7E308)
+        double MultiplicativeSteeringWheelSpeed;    //@ID 6
+        @min(-1.7E308)
+        @max(1.7E308)
+        double MultiplicativeSteeringWheelTorque;    //@ID 7
+        @min(-1.7E308)
+        @max(1.7E308)
+        double TimeOfUpdate;    //@ID 8
+    };
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+}; // end of 'IndyDS' module

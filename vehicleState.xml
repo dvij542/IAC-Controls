@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/rti_connext_dds-6.0.1/bin/../resource/app/app_support/rtiddsgen/schema/rti_dds_topic_types.xsd">
+<module name="IndyDS">
+  <struct name= "VehicleOutput">
+    <member name="CustomOutput" id="0" type="float64" arrayDimensions="512"/>
+    <member name="EngineSpeed" id="1" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="EngineState" id="2" type="byte"/>
+    <member name="GearBoxMode" id="3" type="int32"/>
+    <member name="GearEngaged" id="4" type="int32"/>
+    <member name="GroundIndex" id="5" type="int32" arrayDimensions="4"/>
+    <member name="LSR" id="6" type="float64" arrayDimensions="4"/>
+    <member name="SteeringWheelAccel" id="7" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="SteeringWheelAngle" id="8" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="SteeringWheelSpeed" id="9" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="SteeringWheelTorque" id="10" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="TimeOfUpdate" id="11" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="TraveledDistance" id="12" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="absIsActive" id="13" type="byte" arrayDimensions="4"/>
+    <member name="auxiliaryLights" id="14" type="int32"/>
+    <member name="brakePedal" id="15" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="brakeRetarderNotch" id="16" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="brakeTemperature" id="17" type="float64" arrayDimensions="4"/>
+    <member name="cdgAccel_heading" id="18" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgAccel_pitch" id="19" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgAccel_roll" id="20" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgAccel_x" id="21" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgAccel_y" id="22" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgAccel_z" id="23" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgPos_heading" id="24" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgPos_pitch" id="25" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgPos_roll" id="26" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgPos_x" id="27" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgPos_y" id="28" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgPos_z" id="29" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgSpeed_heading" id="30" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgSpeed_pitch" id="31" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgSpeed_roll" id="32" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgSpeed_x" id="33" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgSpeed_y" id="34" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="cdgSpeed_z" id="35" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="clutchPedal" id="36" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="consumption" id="37" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="contactPoint_x" id="38" type="float64" arrayDimensions="4"/>
+    <member name="contactPoint_y" id="39" type="float64" arrayDimensions="4"/>
+    <member name="contactPoint_z" id="40" type="float64" arrayDimensions="4"/>
+    <member name="effectiveIgnitionKeyPosition" id="41" type="int32"/>
+    <member name="forceLockup" id="42" type="byte"/>
+    <member name="gasPedal" id="43" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="grip" id="44" type="float64" arrayDimensions="4"/>
+    <member name="groundNormal_x" id="45" type="float64" arrayDimensions="4"/>
+    <member name="groundNormal_y" id="46" type="float64" arrayDimensions="4"/>
+    <member name="groundNormal_z" id="47" type="float64" arrayDimensions="4"/>
+    <member name="groundType" id="48" type="int32" arrayDimensions="4"/>
+    <member name="handBrake" id="49" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="hubPosition_heading" id="50" type="float64" arrayDimensions="4"/>
+    <member name="hubPosition_pitch" id="51" type="float64" arrayDimensions="4"/>
+    <member name="hubPosition_roll" id="52" type="float64" arrayDimensions="4"/>
+    <member name="hubPosition_x" id="53" type="float64" arrayDimensions="4"/>
+    <member name="hubPosition_y" id="54" type="float64" arrayDimensions="4"/>
+    <member name="hubPosition_z" id="55" type="float64" arrayDimensions="4"/>
+    <member name="isEngineRetarder" id="56" type="byte"/>
+    <member name="isInContact" id="57" type="byte" arrayDimensions="4"/>
+    <member name="laneType" id="58" type="int32" arrayDimensions="4"/>
+    <member name="lights" id="59" type="int32"/>
+    <member name="lockDiffMode" id="60" type="int32"/>
+    <member name="plowMode" id="61" type="int32"/>
+    <member name="pollution" id="62" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="roughnessHeight" id="63" type="float64" arrayDimensions="4"/>
+    <member name="roughnessHeightStdDeviation" id="64" type="float64" arrayDimensions="4"/>
+    <member name="roughnessLength" id="65" type="float64" arrayDimensions="4"/>
+    <member name="roughnessLengthStdDeviation" id="66" type="float64" arrayDimensions="4"/>
+    <member name="sirens" id="67" type="int32"/>
+    <member name="slipAngle" id="68" type="float64" arrayDimensions="4"/>
+    <member name="tireForce_x" id="69" type="float64" arrayDimensions="4"/>
+    <member name="tireForce_y" id="70" type="float64" arrayDimensions="4"/>
+    <member name="tireForce_z" id="71" type="float64" arrayDimensions="4"/>
+    <member name="trailerBrake" id="72" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="transferChoice" id="73" type="int32"/>
+    <member name="waterHeight" id="74" type="float64" arrayDimensions="4"/>
+    <member name="wheelRotation" id="75" type="float64" arrayDimensions="4"/>
+    <member name="wheelRotationSpeed" id="76" type="float64" arrayDimensions="4"/>
+  </struct>
+</module>
+</types>

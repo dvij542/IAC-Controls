@@ -1,0 +1,42 @@
+module IndyDS{
+    struct CabToModelCorrective {
+        @min(-1.7E308)
+        @max(1.7E308)
+        double AcceleratorAdditive;    //@ID 0
+        @min(-1.7E308)
+        @max(1.7E308)
+        double AcceleratorMultiplicative;    //@ID 1
+        @min(-1.7E308)
+        @max(1.7E308)
+        double BrakeAdditive;    //@ID 2
+        @min(-1.7E308)
+        @max(1.7E308)
+        double BrakeMultiplicative;    //@ID 3
+        @min(-1.7E308)
+        @max(1.7E308)
+        double ClutchAdditive;    //@ID 4
+        @min(-1.7E308)
+        @max(1.7E308)
+        double ClutchMultiplicative;    //@ID 5
+        short GearboxAutoMode;    //@ID 6
+        octet GearboxTakeOver;    //@ID 7
+        octet IsRatioLimit;    //@ID 8
+        short MaxRatio;    //@ID 9
+        short MinRatio;    //@ID 10
+        @min(-1.7E308)
+        @max(1.7E308)
+        double ParkingBrakeAdditive;    //@ID 11
+        @min(-1.7E308)
+        @max(1.7E308)
+        double ParkingBrakeMultiplicative;    //@ID 12
+        octet ShiftDown;    //@ID 13
+        octet ShiftUp;    //@ID 14
+        @min(-1.7E308)
+        @max(1.7E308)
+        double TimeOfUpdate;    //@ID 15
+        short WantedGear;    //@ID 16
+    };
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+}; // end of 'IndyDS' module
+

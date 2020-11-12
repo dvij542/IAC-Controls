@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/rti_connext_dds-6.0.1/bin/../resource/app/app_support/rtiddsgen/schema/rti_dds_topic_types.xsd">
+<module name="IndyDS">
+  <struct name= "CabToSteeringCorrective">
+    <member name="AdditiveSteeringWheelAccel" id="0" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="AdditiveSteeringWheelAngle" id="1" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="AdditiveSteeringWheelSpeed" id="2" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="AdditiveSteeringWheelTorque" id="3" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="MultiplicativeSteeringWheelAccel" id="4" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="MultiplicativeSteeringWheelAngle" id="5" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="MultiplicativeSteeringWheelSpeed" id="6" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="MultiplicativeSteeringWheelTorque" id="7" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="TimeOfUpdate" id="8" type="float64" min="-1.7E308" max="1.7E308"/>
+  </struct>
+</module>
+</types>

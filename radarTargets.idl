@@ -1,0 +1,58 @@
+module IndyDS{
+    struct SensorMovableTarget {
+        short id;    //@ID 0
+        short scanerId;    //@ID 1
+        short detectionStatus;    //@ID 2
+        short type_;    //@ID 3
+        short beamIndex;    //@ID 4
+        double existenceTime;    //@ID 5
+        short anchorPoint;    //@ID 6
+        short referenceFrame;    //@ID 7
+        double posXInChosenRef;    //@ID 8
+        double posYInChosenRef;    //@ID 9
+        double posZInChosenRef;    //@ID 10
+        float posHeadingInChosenRef;    //@ID 11
+        float posPitchInChosenRef;    //@ID 12
+        float posRollInChosenRef;    //@ID 13
+        float distanceToCollision;    //@ID 14
+        float azimuthInSensor;    //@ID 15
+        float elevationInSensor;    //@ID 16
+        float azimuthInVehicle;    //@ID 17
+        float elevationInVehicle;    //@ID 18
+        float absoluteSpeedX;    //@ID 19
+        float absoluteSpeedY;    //@ID 20
+        float absoluteSpeedZ;    //@ID 21
+        float absoluteAngularSpeedH;    //@ID 22
+        float absoluteAngularSpeedP;    //@ID 23
+        float absoluteAngularSpeedR;    //@ID 24
+        float relativeSpeedX;    //@ID 25
+        float relativeSpeedY;    //@ID 26
+        float relativeSpeedZ;    //@ID 27
+        float relativeAngularSpeedH;    //@ID 28
+        float relativeAngularSpeedP;    //@ID 29
+        float relativeAngularSpeedR;    //@ID 30
+        float absoluteAccelX;    //@ID 31
+        float absoluteAccelY;    //@ID 32
+        float absoluteAccelZ;    //@ID 33
+        float relativeAccelX;    //@ID 34
+        float relativeAccelY;    //@ID 35
+        float relativeAccelZ;    //@ID 36
+        float length;    //@ID 37
+        float width;    //@ID 38
+        float height;    //@ID 39
+        float visibility;    //@ID 40
+    };
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+struct SensorMovableTargets {
+    short egoVhlId;    //@ID 0
+    long globalId;    //@ID 1
+    short nearestTarget;    //@ID 2
+    sequence<IndyDS::SensorMovableTarget,30> targetsArray;    //@ID 3
+    @min(-1.7E308)
+    @max(1.7E308)
+    double timeOfUpdate;    //@ID 4
+};
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+}; // end of 'IndyDS' module

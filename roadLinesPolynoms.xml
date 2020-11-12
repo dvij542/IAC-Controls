@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/rti_connext_dds-6.0.1/bin/../resource/app/app_support/rtiddsgen/schema/rti_dds_topic_types.xsd">
+<module name="IndyDS">
+  <struct name= "RoadLinePolynom">
+    <member name="lineId" id="0" type="int16"/>
+    <member name="c0" id="1" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="c1" id="2" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="c2" id="3" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="c3" id="4" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="curvatureRadius" id="5" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="estimatedCurvatureRadius" id="6" type="float64" min="-1.7E308" max="1.7E308"/>
+  </struct>
+  <struct name= "RoadLinesPolynoms">
+    <member name="egoVhlId" id="0" type="int16"/>
+    <member name="globalId" id="1" type="int32"/>
+    <member name="isNoisy" id="2" type="byte"/>
+    <member name="referenceFrame" id="3" type="int16"/>
+    <member name="roadLinesPolynomsArray" sequenceMaxLength="3" id="4" type="nonBasic"  nonBasicTypeName= "IndyDS::RoadLinePolynom"/>
+    <member name="timeOfUpdate" id="5" type="float64" min="-1.7E308" max="1.7E308"/>
+  </struct>
+</module>
+</types>

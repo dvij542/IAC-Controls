@@ -1,0 +1,149 @@
+module IndyDS{
+    struct VehicleOutput {
+        double CustomOutput[512];    //@ID 0
+        @min(-1.7E308)
+        @max(1.7E308)
+        double EngineSpeed;    //@ID 1
+        octet EngineState;    //@ID 2
+        long GearBoxMode;    //@ID 3
+        long GearEngaged;    //@ID 4
+        long GroundIndex[4];    //@ID 5
+        double LSR[4];    //@ID 6
+        @min(-1.7E308)
+        @max(1.7E308)
+        double SteeringWheelAccel;    //@ID 7
+        @min(-1.7E308)
+        @max(1.7E308)
+        double SteeringWheelAngle;    //@ID 8
+        @min(-1.7E308)
+        @max(1.7E308)
+        double SteeringWheelSpeed;    //@ID 9
+        @min(-1.7E308)
+        @max(1.7E308)
+        double SteeringWheelTorque;    //@ID 10
+        @min(-1.7E308)
+        @max(1.7E308)
+        double TimeOfUpdate;    //@ID 11
+        @min(-1.7E308)
+        @max(1.7E308)
+        double TraveledDistance;    //@ID 12
+        octet absIsActive[4];    //@ID 13
+        long auxiliaryLights;    //@ID 14
+        @min(-1.7E308)
+        @max(1.7E308)
+        double brakePedal;    //@ID 15
+        @min(-1.7E308)
+        @max(1.7E308)
+        double brakeRetarderNotch;    //@ID 16
+        double brakeTemperature[4];    //@ID 17
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgAccel_heading;    //@ID 18
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgAccel_pitch;    //@ID 19
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgAccel_roll;    //@ID 20
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgAccel_x;    //@ID 21
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgAccel_y;    //@ID 22
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgAccel_z;    //@ID 23
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgPos_heading;    //@ID 24
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgPos_pitch;    //@ID 25
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgPos_roll;    //@ID 26
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgPos_x;    //@ID 27
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgPos_y;    //@ID 28
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgPos_z;    //@ID 29
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgSpeed_heading;    //@ID 30
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgSpeed_pitch;    //@ID 31
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgSpeed_roll;    //@ID 32
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgSpeed_x;    //@ID 33
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgSpeed_y;    //@ID 34
+        @min(-1.7E308)
+        @max(1.7E308)
+        double cdgSpeed_z;    //@ID 35
+        @min(-1.7E308)
+        @max(1.7E308)
+        double clutchPedal;    //@ID 36
+        @min(-1.7E308)
+        @max(1.7E308)
+        double consumption;    //@ID 37
+        double contactPoint_x[4];    //@ID 38
+        double contactPoint_y[4];    //@ID 39
+        double contactPoint_z[4];    //@ID 40
+        long effectiveIgnitionKeyPosition;    //@ID 41
+        octet forceLockup;    //@ID 42
+        @min(-1.7E308)
+        @max(1.7E308)
+        double gasPedal;    //@ID 43
+        double grip[4];    //@ID 44
+        double groundNormal_x[4];    //@ID 45
+        double groundNormal_y[4];    //@ID 46
+        double groundNormal_z[4];    //@ID 47
+        long groundType[4];    //@ID 48
+        @min(-1.7E308)
+        @max(1.7E308)
+        double handBrake;    //@ID 49
+        double hubPosition_heading[4];    //@ID 50
+        double hubPosition_pitch[4];    //@ID 51
+        double hubPosition_roll[4];    //@ID 52
+        double hubPosition_x[4];    //@ID 53
+        double hubPosition_y[4];    //@ID 54
+        double hubPosition_z[4];    //@ID 55
+        octet isEngineRetarder;    //@ID 56
+        octet isInContact[4];    //@ID 57
+        long laneType[4];    //@ID 58
+        long lights;    //@ID 59
+        long lockDiffMode;    //@ID 60
+        long plowMode;    //@ID 61
+        @min(-1.7E308)
+        @max(1.7E308)
+        double pollution;    //@ID 62
+        double roughnessHeight[4];    //@ID 63
+        double roughnessHeightStdDeviation[4];    //@ID 64
+        double roughnessLength[4];    //@ID 65
+        double roughnessLengthStdDeviation[4];    //@ID 66
+        long sirens;    //@ID 67
+        double slipAngle[4];    //@ID 68
+        double tireForce_x[4];    //@ID 69
+        double tireForce_y[4];    //@ID 70
+        double tireForce_z[4];    //@ID 71
+        @min(-1.7E308)
+        @max(1.7E308)
+        double trailerBrake;    //@ID 72
+        long transferChoice;    //@ID 73
+        double waterHeight[4];    //@ID 74
+        double wheelRotation[4];    //@ID 75
+        double wheelRotationSpeed[4];    //@ID 76
+    };
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+}; // end of 'IndyDS' module

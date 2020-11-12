@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/rti_connext_dds-6.0.1/bin/../resource/app/app_support/rtiddsgen/schema/rti_dds_topic_types.xsd">
+<module name="IndyDS">
+  <struct name= "SensorMovableTarget">
+    <member name="id" id="0" type="int16"/>
+    <member name="scanerId" id="1" type="int16"/>
+    <member name="detectionStatus" id="2" type="int16"/>
+    <member name="type_" id="3" type="int16"/>
+    <member name="beamIndex" id="4" type="int16"/>
+    <member name="existenceTime" id="5" type="float64"/>
+    <member name="anchorPoint" id="6" type="int16"/>
+    <member name="referenceFrame" id="7" type="int16"/>
+    <member name="posXInChosenRef" id="8" type="float64"/>
+    <member name="posYInChosenRef" id="9" type="float64"/>
+    <member name="posZInChosenRef" id="10" type="float64"/>
+    <member name="posHeadingInChosenRef" id="11" type="float32"/>
+    <member name="posPitchInChosenRef" id="12" type="float32"/>
+    <member name="posRollInChosenRef" id="13" type="float32"/>
+    <member name="distanceToCollision" id="14" type="float32"/>
+    <member name="azimuthInSensor" id="15" type="float32"/>
+    <member name="elevationInSensor" id="16" type="float32"/>
+    <member name="azimuthInVehicle" id="17" type="float32"/>
+    <member name="elevationInVehicle" id="18" type="float32"/>
+    <member name="absoluteSpeedX" id="19" type="float32"/>
+    <member name="absoluteSpeedY" id="20" type="float32"/>
+    <member name="absoluteSpeedZ" id="21" type="float32"/>
+    <member name="absoluteAngularSpeedH" id="22" type="float32"/>
+    <member name="absoluteAngularSpeedP" id="23" type="float32"/>
+    <member name="absoluteAngularSpeedR" id="24" type="float32"/>
+    <member name="relativeSpeedX" id="25" type="float32"/>
+    <member name="relativeSpeedY" id="26" type="float32"/>
+    <member name="relativeSpeedZ" id="27" type="float32"/>
+    <member name="relativeAngularSpeedH" id="28" type="float32"/>
+    <member name="relativeAngularSpeedP" id="29" type="float32"/>
+    <member name="relativeAngularSpeedR" id="30" type="float32"/>
+    <member name="absoluteAccelX" id="31" type="float32"/>
+    <member name="absoluteAccelY" id="32" type="float32"/>
+    <member name="absoluteAccelZ" id="33" type="float32"/>
+    <member name="relativeAccelX" id="34" type="float32"/>
+    <member name="relativeAccelY" id="35" type="float32"/>
+    <member name="relativeAccelZ" id="36" type="float32"/>
+    <member name="length" id="37" type="float32"/>
+    <member name="width" id="38" type="float32"/>
+    <member name="height" id="39" type="float32"/>
+    <member name="visibility" id="40" type="float32"/>
+  </struct>
+  <struct name= "SensorMovableTargets">
+    <member name="egoVhlId" id="0" type="int16"/>
+    <member name="globalId" id="1" type="int32"/>
+    <member name="nearestTarget" id="2" type="int16"/>
+    <member name="targetsArray" sequenceMaxLength="30" id="3" type="nonBasic"  nonBasicTypeName= "IndyDS::SensorMovableTarget"/>
+    <member name="timeOfUpdate" id="4" type="float64" min="-1.7E308" max="1.7E308"/>
+  </struct>
+</module>
+</types>

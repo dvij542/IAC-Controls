@@ -1,0 +1,38 @@
+module IndyDS{
+    struct RoadLinePolynom {
+        short lineId;    //@ID 0
+        @min(-1.7E308)
+        @max(1.7E308)
+        double c0;    //@ID 1
+        @min(-1.7E308)
+        @max(1.7E308)
+        double c1;    //@ID 2
+        @min(-1.7E308)
+        @max(1.7E308)
+        double c2;    //@ID 3
+        @min(-1.7E308)
+        @max(1.7E308)
+        double c3;    //@ID 4
+        @min(-1.7E308)
+        @max(1.7E308)
+        double curvatureRadius;    //@ID 5
+        @min(-1.7E308)
+        @max(1.7E308)
+        double estimatedCurvatureRadius;    //@ID 6
+    };
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+struct RoadLinesPolynoms {
+    short egoVhlId;    //@ID 0
+    long globalId;    //@ID 1
+    octet isNoisy;    //@ID 2
+    short referenceFrame;    //@ID 3
+    sequence<IndyDS::RoadLinePolynom,3> roadLinesPolynomsArray;    //@ID 4
+    @min(-1.7E308)
+    @max(1.7E308)
+    double timeOfUpdate;    //@ID 5
+};
+//@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+}; // end of 'IndyDS' module
+

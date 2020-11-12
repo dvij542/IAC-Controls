@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///C:/Program Files/rti_connext_dds-6.0.1/bin/../resource/app/app_support/rtiddsgen/schema/rti_dds_topic_types.xsd">
+<module name="IndyDS">
+  <struct name= "CabToModelCorrective">
+    <member name="AcceleratorAdditive" id="0" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="AcceleratorMultiplicative" id="1" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="BrakeAdditive" id="2" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="BrakeMultiplicative" id="3" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="ClutchAdditive" id="4" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="ClutchMultiplicative" id="5" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="GearboxAutoMode" id="6" type="int16"/>
+    <member name="GearboxTakeOver" id="7" type="byte"/>
+    <member name="IsRatioLimit" id="8" type="byte"/>
+    <member name="MaxRatio" id="9" type="int16"/>
+    <member name="MinRatio" id="10" type="int16"/>
+    <member name="ParkingBrakeAdditive" id="11" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="ParkingBrakeMultiplicative" id="12" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="ShiftDown" id="13" type="byte"/>
+    <member name="ShiftUp" id="14" type="byte"/>
+    <member name="TimeOfUpdate" id="15" type="float64" min="-1.7E308" max="1.7E308"/>
+    <member name="WantedGear" id="16" type="int16"/>
+  </struct>
+</module>
+</types>
