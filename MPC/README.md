@@ -1,19 +1,10 @@
-# Example: Data Transformation
-
-## Example description
-In this example `transform.py` subscribes to the *Square* topic, applies
-a simple transformation to the data it receives, and publishes it into a topic of
-the same type, *Circle*.
-
-## Running the example
-To run the example:
-
-* Run any *DDS* application that publishes the *Square* topic. For example, run
-  `python ../simple/writer.py`; or run
-  [RTI Shapes Demo](https://www.rti.com/free-trial/shapes-demo) and create
-  a *Square* publisher.
-* Run any *DDS* application that subscribes to the *Circle* topic. For example,
-  run `python reader.py`; or run
-  [RTI Shapes Demo](https://www.rti.com/free-trial/shapes-demo) and create a
-  *Circle* subscriber.
-* Run the transformation application: `python transform.py`
+# IAC-Controls
+Control strategies used Indy Autonomous Challenge from IUPUI-IITKGP-USB team
+<pre>
+mpc_v1.py : Cost function is the summation of distances wrt a target point
+mpc_v2.py : Cost function is modified to be compatible with the inputs i.e. take the distance from the center line path and angle difference with the path angle.
+mpc_v3.py : Added inverse distance term with the nearest obstacle to stay away from obstacles.
+mpc_v4.py : Replaced distance and angle terms with progress along the centerline which is take to be the length between the perpendicular projections of starting and end points to mimic and follow optimum race line whenever possible\n
+mpc_v4_parallel.py : Run in parallel to SpeedController to increase parallel computtions in mpc_v4.py
+mpc_v5_parallel.py : Replace center line with global optimal racing line read from file coordiates_c.txt
+</pre>
