@@ -1,4 +1,4 @@
-# IAC-Controls
+# MPC
 Control strategies used Indy Autonomous Challenge from IUPUI-IITKGP-USB team
 <pre>
 mpc_v1.py : Cost function is the summation of distances wrt a target point
