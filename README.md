@@ -1,19 +1,13 @@
-# Example: Data Transformation
+# IAC-Control-Strategies
+Currently used approach :-
 
-## Example description
-In this example `transform.py` subscribes to the *Square* topic, applies
-a simple transformation to the data it receives, and publishes it into a topic of
-the same type, *Circle*.
+Step 1: Use bayesian optimization to find the global optimal racing line and save the coordinates for the trajectory generated in a text file. References :- https://arxiv.org/pdf/2002.04794.pdf 
 
-## Running the example
-To run the example:
+Step 2: Run MPC on the global trajectory generated to locally avoid obstacles and perform overtaking maneuver with competitor vehicles. References :- 
+[Model-predictive active steering and obstacle avoidance for autonomous ground vehicles](https://www.sciencedirect.com/science/article/pii/S0967066108002025), 
+[Optimization‐based autonomous racing of 1:43 scale RC cars](https://arxiv.org/abs/1711.07300), 
+[“Kinematic and Dynamic Vehicle Models for Autonomous Driving Control Design” ,Jason Kong , Mark Pfeiffer, Georg Schildbach , Francesco Borrelli](https://www.researchgate.net/publication/308851864_Kinematic_and_dynamic_vehicle_models_for_autonomous_driving_control_design)
 
-* Run any *DDS* application that publishes the *Square* topic. For example, run
-  `python ../simple/writer.py`; or run
-  [RTI Shapes Demo](https://www.rti.com/free-trial/shapes-demo) and create
-  a *Square* publisher.
-* Run any *DDS* application that subscribes to the *Circle* topic. For example,
-  run `python reader.py`; or run
-  [RTI Shapes Demo](https://www.rti.com/free-trial/shapes-demo) and create a
-  *Circle* subscriber.
-* Run the transformation application: `python transform.py`
+
+# Prerequisites
+1. Install rtidds-connext, scadi python libraries using pip install
