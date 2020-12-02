@@ -16,33 +16,32 @@ sys_path.append(file_path + "/../../../")
 import rticonnextdds_connector as rti
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 curr_index = 0
 last_index = -1
 kp = 1
 curr_steerings = np.zeros(20)
 curr_speeds = np.zeros(20)
+no_of_iters = 300
+i = 0
+speeds = []
+times = []
+
 with rti.open_connector(
         config_name="MyParticipantLibrary::SpeedParticipant",
         url=file_path + "/../ShapeExample.xml") as connector:
 
     input = connector.get_input("StateSubscriber::stateReader")
     output = connector.get_output("SpeedPublisher::speedPub")
-    input_controls = connector.get_input("controlSubscriber::controlSub")
     output_steering = connector.get_output("steeringPublisher::steeringPub")
     # Read data from the input, transform it and write it into the output
     print("Waiting for data...")
-    input_controls.wait()
     input.wait()
     while True:
-        input_controls.take()
-        for sample in input_controls.samples.valid_data_iter:
-            data = sample.get_dictionary()
-            #print(data)
-            curr_steerings = data['steeringArray']
-            curr_speeds = data['speedsArray']
-            curr_index = curr_index - last_index - 1
-            last_index = curr_index
+        i = i+1
+        print("iter :", i)
+        if i>no_of_iters :
             break
         input.wait() # Wait for data in the input
         input.take()
@@ -53,14 +52,17 @@ with rti.open_connector(
             vx = data['cdgSpeed_x']
             vy = data['cdgSpeed_y']
             vz = data['cdgSpeed_z']
+            pedal = data['gasPedal']
+            print("Pedal :", pedal)
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz);
+            speeds.append(curr_speed)
             out = {}
             out_steering = {}
             target_speed=curr_speeds[curr_index]
             #print(target_speed-curr_speed)
-            out['AcceleratorAdditive'] = max(0,target_speed)
+            out['AcceleratorAdditive'] = max(0,kp*(target_speed-curr_speed))
             out['AcceleratorMultiplicative'] = 0
-            out['BrakeAdditive'] = -min(0,target_speed)
+            out['BrakeAdditive'] = -min(0,kp*(target_speed-curr_speed))
             out['BrakeMultiplicative'] = 0
             out['ClutchAdditive'] = 0
             out['ClutchMultiplicative'] = 0
@@ -96,5 +98,10 @@ with rti.open_connector(
                 output_steering.instance.set_dictionary(out_steering)
                 output_steering.write()
             print("Time: ", data['TimeOfUpdate'])
+            times.append(data['TimeOfUpdate'])
             break
         curr_index += 1
+
+    # Plot the obtained values
+    plt.plot(x = speeds, y = times)
+    plt.show()

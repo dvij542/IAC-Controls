@@ -24,10 +24,12 @@ has_start=True
 x=SX.sym('x')
 y=SX.sym('y')
 theta=SX.sym('theta')
-states=vertcat(x,y,theta)
 v=SX.sym('v')
+a=SX.sym('a')
+states=vertcat(x,y,theta,v)
+c=SX.sym('c')
 delta=SX.sym('delta')
-controls=vertcat(v,delta)
+controls=vertcat(c,delta)
 EPSILON = 0
 L=2.9
 
@@ -35,22 +37,22 @@ L=2.9
 
 ##########     Hyperparameters     #################
 
+mass = 460 # in Kg
 tolerance = 2
-save_path_after = 1500
+save_path_after = 2500
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
-file_new_path = "./coordinates_nc.txt" # File in which the new coordinates will be saved
+file_new_path = "./coordinates_nc2.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
-penalty_out_of_road = 3 # Penalise for planning path outside the road
+penalty_out_of_road = 6 # Penalise for planning path outside the road
 no_iters = 3
 max_no_of_vehicles = 4
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
     [0,2]])
-R2=SX([[0.5,0],   # Weights for rate of change of speed and steering angle
+R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 T = .04 # Time horizon
 N = 20 # Number of control intervals
-v_max = 57 # Max speed (m/s)
 kp=1 # For PID controller
 obs_dist = 10 # To maintain from other vehicles at each time step
 ki=0
@@ -63,21 +65,23 @@ dist_threshold = 0.25
 control_sample = np.zeros((2,N))
 
 
-###########     Bicycle Model      ##################
+###########     Dynamic Model      ##################
 
 rhs=[
-        v*cos(theta+((atan(tan(delta/9.9)))/2)),
-        v*sin(theta+((atan(tan(delta/9.9)))/2 )),
-        v*sin((atan(tan(delta/9.9))) ) /L
-    ]                                                                                   
+        (v)*cos(theta+((atan(tan(delta/9.9)))/2)),
+        (v)*sin(theta+((atan(tan(delta/9.9)))/2)),
+        (v)*sin(atan(tan(delta/9.9)))/L,
+        ((v>=0)*(v<15.6)*c*3000+(v>=15.6)*(v<22)*c*2575+(v>=22)*(v<23.4)*c*0+(v>=23.4)*(v<29.2)*c*2375+(v>=29.2)*(v<39.2)*c*1975+(v>=39.2)*(v<50)*c*1532+(v>=50)*c*1300-0.43*v*v+(c<0)*c)/mass
+    ]
 rhs=vertcat(*rhs)
 f=Function('f',[states,controls],[rhs])
-n_states=3  
+n_states=4
 n_controls=2
 U=SX.sym('U',n_controls,N)
 P=SX.sym('P',9+4*max_no_of_vehicles+8)
 X=SX.sym('X',n_states,(N+1))
-X[:,0]=P[0:n_states]         
+X[:-1,0]=P[0:n_states-1]
+X[-1,0]=P[7]         
 itr = SX.sym('I',no_iters,N)
 itr_l = SX.sym('Il',no_iters,N)
 itr_r = SX.sym('Ir',no_iters,N)
@@ -142,17 +146,16 @@ for k in range(0,N,1):
     R[0,0] = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))/(((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]) - (st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))/(1+F_dash[0,k]**2)**(0.5))
     pen[0,k] =  distance_l+tolerance
     pen[1,k] =  distance_r+tolerance
-    obj = obj + penalty_out_of_road*(pen[0,k]>0)*pen[0,k]**2 # Penalise for going out of left lane
-    obj = obj + penalty_out_of_road*(pen[1,k]>0)*pen[1,k]**2 # Penalise for going out of right lane
+    obj = obj + penalty_out_of_road*(P[0]<10)*(pen[0,k]>0)*pen[0,k]**2 # Penalise for going out of left lane
+    obj = obj + penalty_out_of_road*(P[0]<10)*(pen[1,k]>0)*pen[1,k]**2 # Penalise for going out of right lane
     
     for t in range(max_no_of_vehicles) : 
         obj = obj + ((((P[9+4*t]-X[0,0])**2+(P[10+4*t]-X[1,0])**2))<100)*(obs_dist/((P[9+4*t]+(k)*P[11+4*t]*T-st[0])**2+(P[10+4*t]+(k)*P[12+4*t]*T-st[1])**2)) # To maintain safe distance from other vehicles
     
-    obj = obj - Q_along*con[0]*cos(atan(F_dash[0,k])-st[2])*R[0,0] # To move along the lane 
+    obj = obj - Q_along*st[3]*cos(atan(F_dash[0,k])-st[2])*R[0,0] # To move along the lane 
     obj = obj + Q_dist*(P[3]+P[4]*st[0]+P[5]*st[0]*st[0]+P[6]*st[0]*st[0]*st[0]-st[1])**2 # Distance from the center lane
     obj = obj + con.T@R1@con # Penalise for more steering angle
 
-obj = obj+(P[7:9] - U[:,0]).T@R2@(P[7:9] - U[:,0])
 for k in range(0,N-1,1):
     prev_con=U[:,k]
     next_con=U[:,k+1]
@@ -189,8 +192,8 @@ lbx=np.zeros(2*N)
 ubx=np.zeros(2*N)
 
 for k in range (0,2*N,2): 
-    lbx[k]=0
-    ubx[k]=v_max
+    lbx[k]=-6000
+    ubx[k]=1
 
 for k in range (1,(2*N)-1,2): 
     lbx[k]=-math.pi
@@ -204,6 +207,9 @@ def dist1(x1,y1,x2,y2):
 def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth):
     x_bot = 0
     y_bot = 0
+    ####### Special regions ############
+    if curr_pos[1]<-1174 and curr_pos[1]>-1452 and curr_pos[0]<-170:
+        x_bot = 12
     yaw_car = 0 # yaw in radians
     current_pose=[x_bot,y_bot,yaw_car]
     current_control = [speed, steering]
@@ -241,7 +247,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         for vehicle in all_vehicles :
             xd = vehicle[0]+vehicle[2]*i*T
             yd = vehicle[1]+vehicle[3]*i*T
-            dist = (yc-yd)**2 #+ (xc-xd)**2
+            dist = (yc-yd)**2 + (xc-xd)**2
             if dist<mindist :
                 mindist = dist
                 minx = xd
@@ -269,7 +275,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
                 yd = miny - yc + 1
             xr = xd*cos(theta) + yd*sin(theta)
             yr = -xd*sin(theta) + yd*cos(theta)
-            control_sample[0,i] = speed
+            control_sample[0,i] = 0
             Rd = (xr**2 + yr**2)/(2*yr)
             control_sample[1,i] = 58*yr/(xr**2 + yr**2)
             dx = Rd*sin((speed*T)/Rd)
@@ -298,7 +304,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
                 yd = miny - yc - 1
             xr = xd*cos(theta) + yd*sin(theta)
             yr = -xd*sin(theta) + yd*cos(theta)
-            control_sample[0,i] = speed
+            control_sample[0,i] = 0
             Rd = (xr**2 + yr**2)/(2*yr)
             control_sample[1,i] = 58*yr/(xr**2 + yr**2)
             dx = Rd*sin((speed*T)/Rd)
@@ -348,15 +354,15 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         speed_output = u[:,0]
         return ctrlmsg, speed_output
             
-    control_sample[0,:] = speed
+    control_sample[0,:] = 0
     control_sample[1,:] = 0
     x0=reshape(control_sample,2*N,1)
     so=solver(x0=x0,p=p,lbx=lbx,ubx=ubx) 
     x=so['x']
     u = reshape(x.T,2,N).T        
     ctrlmsg = u[:,1]
-    speed_output = u[:,0]
-    return ctrlmsg, speed_output
+    control_output = u[:,0]
+    return ctrlmsg, control_output
 
 
 
@@ -384,7 +390,7 @@ with rti.open_connector(
     nr_dist = 0
     all_vehicles = np.ones((max_no_of_vehicles,4))*10000
     if file_path_follow != None:
-        trajectory_to_follow = np.loadtxt(file_path_follow,delimiter = ",")*100.0
+        trajectory_to_follow = np.loadtxt(file_path_follow,delimiter = ",")[:2,:]*100.0
     else :
         trajectory_to_follow=None
     traj_followed = []
@@ -519,7 +525,6 @@ with rti.open_connector(
             out_controls['speedsArray'] = S1.tolist()
             out_controls['steeringArray'] = S2.tolist()
 
-            
             controls.instance.set_dictionary(out_controls)
             controls.write()
             break
@@ -529,7 +534,7 @@ with rti.open_connector(
     print(traj_followed)
     plt.plot(traj_followed[0],traj_followed[1],'k', lw=0.5, alpha=0.5)
     plt.plot(trajectory_to_follow[0]/100.0,trajectory_to_follow[1]/100.0,'--k', lw=0.5, alpha=0.5)
-    np.savetxt('coordinates_nc.txt', traj_followed, delimiter=',')
+    np.savetxt(file_new_path, traj_followed, delimiter=',')
     plt.show()
 
 if __name__ == '__main__':    

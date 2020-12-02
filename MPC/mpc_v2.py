@@ -41,7 +41,7 @@ R2=SX([[2,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 T = .1 # Time horizon
 N = 20 # Number of control intervals
-v = 40 # Max speed (m/s)
+v = 20 # Max speed (m/s)
 kp=1 # For PID controller
 ki=0
 kd=0
@@ -175,7 +175,7 @@ with rti.open_connector(
         itr = itr+1
         widthl = 0
         widthr = 0
-        if total_itr > 2100 :
+        if total_itr > 1130 :
             break
         print("Iteration no", total_itr)
         input.wait() # Wait for data in the input
@@ -245,6 +245,9 @@ with rti.open_connector(
             if itr>10 :
                 itr = 0
                 center_lane.append([posx,posy])
+                lane_width_right.append(5)
+                lane_width_left.append(5)
+                normvec_m.append([cos(1.57+orientation), sin(1.57+orientation)])
                 left_lane.append([posx+5*cos(1.57+orientation),posy+5*sin(1.57+orientation)])
                 right_lane.append([posx-5*cos(1.57+orientation),posy-5*sin(1.57+orientation)])
 
