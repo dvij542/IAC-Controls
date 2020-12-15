@@ -10,4 +10,4 @@ Step 2: Run MPC on the global trajectory generated to locally avoid obstacles an
 
 
 # Prerequisites
-1. Install rtidds-connext, scadi python libraries using pip install
+1. Install rtidds-connext, casadi python libraries using pip install
