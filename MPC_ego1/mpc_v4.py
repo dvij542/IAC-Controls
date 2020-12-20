@@ -36,8 +36,12 @@ L=2.9
 
 ##########     Hyperparameters     #################
 
+<<<<<<< HEAD
 total_no_iters = 800
 slip_penalty = 0
+=======
+slip_penalty = 2
+>>>>>>> c3b7d61f569b55661c40269d4300a79eebf0bf06
 FMax = 1  # mu X mass X g (The max force that can be exerted from the ground)
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
@@ -50,7 +54,11 @@ R2=SX([[0.5,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 T = .1 # Time horizon
 N = 20 # Number of control intervals
+<<<<<<< HEAD
 v_max = 80 # Max speed (m/s)
+=======
+v_max = 50 # Max speed (m/s)
+>>>>>>> c3b7d61f569b55661c40269d4300a79eebf0bf06
 kp=1 # For PID controller
 obs_dist = 10 # To maintain from other vehicles at each time step
 ki=0
@@ -492,7 +500,6 @@ with rti.open_connector(
             curr_steering_array, target_speed_array = (mpcCallback(curve, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
             curr_steering = float(curr_steering_array[0])
             target_speed = float(target_speed_array[0])
-            
         input_speed.wait() # Wait for data in the input
         input_speed.take()
         for sample in input_speed.samples.valid_data_iter:
@@ -562,7 +569,6 @@ with rti.open_connector(
         done_topic.instance.set_dictionary(wait_msg)
         done_topic.write()
         print("message written")
-
     lane_new = np.array(lane_new)
     plt.plot(lane_new[:,0],lane_new[:,1],'ro')
     np.savetxt('recorded_path.txt', lane_new, delimiter=',')
