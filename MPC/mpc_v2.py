@@ -241,17 +241,21 @@ with rti.open_connector(
             vz = data['cdgSpeed_z']
             posx = data['cdgPos_x']
             posy = data['cdgPos_y']
+            normalz = 
+            frictionx =
+            frictiony = 
+            gear = 
             orientation = data['cdgPos_heading']
+            curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
+            center_lane.append([posx,posy,curr_speed,normalz,frictionx,frictiony,gear])
             if itr>10 :
                 itr = 0
-                center_lane.append([posx,posy])
                 lane_width_right.append(5)
                 lane_width_left.append(5)
                 normvec_m.append([cos(1.57+orientation), sin(1.57+orientation)])
                 left_lane.append([posx+5*cos(1.57+orientation),posy+5*sin(1.57+orientation)])
                 right_lane.append([posx-5*cos(1.57+orientation),posy-5*sin(1.57+orientation)])
 
-            curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current Speed : ", curr_speed)
             out = {}
             throtle = kp*(target_speed-curr_speed)+ki*aggregate
