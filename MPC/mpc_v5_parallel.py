@@ -80,6 +80,7 @@ n_controls=2
 U=SX.sym('U',n_controls,N)
 P=SX.sym('P',9+4*max_no_of_vehicles+8)
 X=SX.sym('X',n_states,(N+1))
+g=SX.sym('g',2,N)
 X[:-1,0]=P[0:n_states-1]
 X[-1,0]=P[7]         
 itr = SX.sym('I',no_iters,N)
@@ -103,7 +104,7 @@ for k in range(0,N,1):
 
 ff=Function('ff',[U,P],[X])
 obj=64000
-g=0
+
 
 ################# P ###########
 # 0,1,2 : Initial posx, posy and heading angle
@@ -144,8 +145,10 @@ for k in range(0,N,1):
     distance_r =  ((st[0]-itr_r[no_iters-1,k])**2 + (st[1]-F_val_r[0,k])**2)**(1/2)*(2*(st[1]<F_val_r[0,k])-1)
     
     R[0,0] = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))/(((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]) - (st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))/(1+F_dash[0,k]**2)**(0.5))
-    pen[0,k] =  distance_l+tolerance
-    pen[1,k] =  distance_r+tolerance
+    g[0,k] =  distance_l
+    g[1,k] =  distance_r
+    pen[0,k] = distance_l + tolerance
+    pen[1,k] = distance_r + tolerance
     obj = obj + penalty_out_of_road*(P[0]<10)*(pen[0,k]>0)*pen[0,k]**2 # Penalise for going out of left lane
     obj = obj + penalty_out_of_road*(P[0]<10)*(pen[1,k]>0)*pen[1,k]**2 # Penalise for going out of right lane
     
@@ -163,13 +166,8 @@ for k in range(0,N-1,1):
 
 opt_variables=vertcat(U)
 OPT_variables = reshape(U,2*N,1)
-
-for k in range (0,N,1): 
-    g = X[0,k]
-    g = X[1,k]  
-   
-   
-nlp_prob = {'f': obj, 'x':OPT_variables, 'p': P,'g':g}
+g_func = reshape(g,2*N,1)  
+nlp_prob = {'f': obj, 'x':OPT_variables, 'p': P,'g':g_func}
 options = {
             'ipopt.print_level' : 0,
             'ipopt.max_iter' : 500,
@@ -190,14 +188,22 @@ solver=nlpsol("solver","ipopt",nlp_prob,options)
 
 lbx=np.zeros(2*N)
 ubx=np.zeros(2*N)
+lbg=np.zeros(2*N)
+ubg=np.zeros(2*N)
 
 for k in range (0,2*N,2): 
     lbx[k]=-6000
     ubx[k]=1
+    lbg[k]=-100
+    if k>N//4:
+        ubg[k]=0
 
-for k in range (1,(2*N)-1,2): 
+for k in range (1,(2*N)+1,2): 
     lbx[k]=-math.pi
     ubx[k]=math.pi
+    lbg[k]=-100
+    if k>n//4:
+        ubg[k]=0
 
 #Initialisation
 
@@ -288,7 +294,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
 
         plt.plot(linelx,linely,'ro-')
         xl=reshape(control_sample.copy(),2*N,1)
-        sl=solver(x0=xl,p=p,lbx=lbx,ubx=ubx)
+        sl=solver(x0=xl,p=p,lbx=lbx,ubx=ubx,lbg=lbg,ubg=ubg)
         costl = sl['f']
         xc=0
         yc=0
@@ -317,7 +323,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         
         plt.plot(linerx,linery,'ro-')
         xrt=reshape(control_sample.copy(),2*N,1)
-        sr=solver(x0=xrt,p=p,lbx=lbx,ubx=ubx)
+        sr=solver(x0=xrt,p=p,lbx=lbx,ubx=ubx,lbg=lbg,ubg=ubg)
         costr = sr['f']
         x = 0
         print("Cost from right : ", costr)
@@ -354,12 +360,14 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         speed_output = u[:,0]
         return ctrlmsg, speed_output
             
-    control_sample[0,:] = 0
+    control_sample[0,:] = 1
     control_sample[1,:] = 0
     x0=reshape(control_sample,2*N,1)
-    so=solver(x0=x0,p=p,lbx=lbx,ubx=ubx) 
+    print(lbg)
+    print(ubg)
+    so=solver(x0=x0,p=p,lbx=lbx,ubx=ubx,lbg=lbg,ubg=ubg) 
     x=so['x']
-    u = reshape(x.T,2,N).T        
+    u = reshape(x.T,2,N).T
     ctrlmsg = u[:,1]
     control_output = u[:,0]
     return ctrlmsg, control_output

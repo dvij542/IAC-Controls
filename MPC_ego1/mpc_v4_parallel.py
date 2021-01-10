@@ -350,14 +350,7 @@ with rti.open_connector(
     	trajectory_to_follow = np.loadtxt(file,delimiter = ",")*100.0
     else :
         trajectory_to_follow=None
-    traj_followed = []
-    itr = 0
-    total_itr=0
     while True:
-        total_itr=total_itr+1
-        itr = itr+1
-        if total_itr > save_path_after :
-            break
         print("Iteration no", total_itr)
         input_radar_F.wait()
         input_radar_F.take()
@@ -425,9 +418,6 @@ with rti.open_connector(
             py = data['cdgPos_y']
             angle_heading = data['cdgPos_heading']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
-            if itr>10 :
-                itr = 0
-                traj_followed.append([px,py,curr_speed])
             print("Current Speed : ", curr_speed)
             break
         input.wait() # Wait for data in the input

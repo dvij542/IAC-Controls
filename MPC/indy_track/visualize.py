@@ -1,95 +1,56 @@
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib import colors as mcolors
 import numpy as np
-from math import *
-
-def dist(x1,y1,x2,y2):
-    return ((x1-x2)**2 + (y1-y2)**2)**(1/2)
 
 #####################################################################
 # which data
 
 TRACK_NAME = 'exp1'
 SAVE_RESULTS = True
-optimal_racing_line = np.loadtxt('coordinates_nc3.txt', delimiter=',').T*100.0
-center_line = np.loadtxt('coordinates_c.txt', delimiter=',').T*100.0
+no_of_trajs = 1
+line_width = 1
+till = 450
 #####################################################################
 # plot best trajectory
-minval = 10000
+filepath = 'laptraj-{}.png'.format(TRACK_NAME)
 
-minval = 10000
-x_ref_m = []
-y_ref_m = []
-width_right_m = []
-width_left_m = []
-x_normvec_m = []
-y_normvec_m = []
-alpha_m = []
-s_racetraj_m = []
-psi_racetraj_rad = []
-kappa_racetraj_radpm = []
-vx_racetraj_mps = []
-ax_racetraj_mps2 = []
+coordinates_center = np.loadtxt('coordinates_c.txt', delimiter=',')
+coordinates_left = np.loadtxt('coordinates_l.txt', delimiter=',')
+coordinates_right = np.loadtxt('coordinates_r.txt', delimiter=',')
 
-s = 0
-prevx = -1
-prevy = -1
-ko = optimal_racing_line.shape[0]
-k = center_line.shape[0]
-for j in range(optimal_racing_line.shape[0]):
-	x = optimal_racing_line[j,0]
-	y = optimal_racing_line[j,1]
-	v = optimal_racing_line[j,2]
-	minval = 10000
-	if prevx!=-1 :
-		s=s+dist(x,y,prevx,prevy)
-	for i in range(k):
-		if dist(center_line[i,0], center_line[i,1], optimal_racing_line[j,0], optimal_racing_line[j,1]) < minval:
-			minval = dist(center_line[i,0], center_line[i,1], optimal_racing_line[j,0], optimal_racing_line[j,1])
-			mini = i
+fig = plt.figure()
+ax = plt.gca()
+ax.axis('equal')
+plt.plot(coordinates_center[0], coordinates_center[1], '--k', lw=0.5, alpha=0.5)
+plt.plot(coordinates_left[0], coordinates_left[1], 'k', lw=0.5, alpha=0.5)
+plt.plot(coordinates_right[0], coordinates_right[1], 'k', lw=0.5, alpha=0.5)
+colors = [mcolors.to_rgba(c)
+          for c in plt.rcParams['axes.prop_cycle'].by_key()['color']]
+print(colors)
+# best trajectory
+#plt.plot(wx_nei[:-1], wy_nei[:-1], linestyle='', marker='D', ms=5)
+labels = [f'line {i}' for i in range(len(colors))]
+for i in range(no_of_trajs):
+	trajectory = np.loadtxt("coordinates_nc{}.txt".format(i), delimiter=',')
+	x = np.array(trajectory[0][:till])
+	y = np.array(trajectory[1][:till])
+	speed = np.array(trajectory[2])
+	points = np.array([x, y]).T.reshape(-1, 1, 2)
+	segments = np.concatenate([points[:-1], points[1:]], axis=1)
+	norm = plt.Normalize(speed.min(), speed.max())
+	lc = LineCollection(segments, linestyle = 'solid', color = colors[i], label=labels[i])
+	lc.set_linewidth(line_width)
+	line = ax.add_collection(lc)
+	#fig.colorbar(line, ax=ax)
+ax.set_xlabel('x [m]')
+ax.set_ylabel('y [m]')
+ax.legend()
 
-	pointu = center_line[(mini+1)%k,:]
-	pointd = center_line[(mini-1)%k,:]
-	point = center_line[mini,:]
+if SAVE_RESULTS:
+	plt.savefig(filepath, dpi=600, bbox_inches='tight')
 
-	theta = atan2(pointu[1]-pointd[1],pointu[0]-pointd[0])
-	A = sin(theta)
-	B = -cos(theta)
-	C = -A*point[0]-B*point[1]
-	d = A*x+B*y+C
-	x_ref = A*(A*x+B*y)
-	y_ref = B*(A*x+B*y)
-	x_ref_m.append(x_ref)
-	y_ref_m.append(y_ref)
-	width_right_m.append(7+d)
-	width_left_m.append(7-d)
-	x_normvec_m.append(A)
-	y_normvec_m.append(B)
-	alpha_m.append(d)
-	s_racetraj_m.append(s)
-	p_f = optimal_racing_line[(j+1)%ko,:]
-	p_b = optimal_racing_line[(j-1)%ko,:]
-	psi_rad = atan2(p_f[0]-p_b[0],p_f[1]-p_b[1])
-	psi_racetraj_rad.append(psi_rad)
-	if abs(p_f[1]-y) < abs(p_f[0]-x) :
-		dydx2 = (p_f[1]-y)/(p_f[0]-x)
-		dydx1 = (p_b[1]-y)/(p_b[0]-x)
-		dydx = (dydx2+dydx1)/2
-		d2ydx2 = 2*(dydx2-dydx1)/(p_f[0]-p_b[0])
-		Rk = d2ydx2/((1+(dydx)**2)**(3/2))
-	else :
-		dxdy2 = (p_f[0]-x)/(p_f[1]-y)
-		dxdy1 = (p_b[0]-x)/(p_b[1]-y)
-		dxdy = (dxdy2+dxdy1)/2
-		d2xdy2 = 2*(dxdy2-dxdy1)/(p_f[1]-p_b[1])
-		Rk = d2xdy2/((1+(dxdy)**2)**(3/2))
-	kappa_racetraj_radpm.append(Rk)
-	vx_racetraj_mps.append(v)
-	a = (optimal_racing_line[(j+1)%ko,2]-optimal_racing_line[(j-1)%ko,2])/0.8
-	ax_racetraj_mps2.append(a)
-	prevx = x 
-	prevy = y
+#####################################################################
 
-output = [x_ref_m, y_ref_m, width_right_m, width_left_m, x_normvec_m, y_normvec_m, alpha_m, s_racetraj_m, psi_racetraj_rad, kappa_racetraj_radpm, vx_racetraj_mps, ax_racetraj_mps2]
-np.savetxt('traj.txt', np.array(output).T, delimiter = ',')
+plt.show()
