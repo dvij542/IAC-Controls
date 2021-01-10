@@ -36,7 +36,8 @@ L=2.9
 
 ##########     Hyperparameters     #################
 
-slip_penalty = 2
+total_no_iters = 800
+slip_penalty = 0
 FMax = 1  # mu X mass X g (The max force that can be exerted from the ground)
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
@@ -49,7 +50,7 @@ R2=SX([[0.5,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 T = .1 # Time horizon
 N = 20 # Number of control intervals
-v_max = 50 # Max speed (m/s)
+v_max = 80 # Max speed (m/s)
 kp=1 # For PID controller
 obs_dist = 10 # To maintain from other vehicles at each time step
 ki=0
@@ -310,7 +311,7 @@ def mpcCallback(curve, steering, speed, goaltheta, all_vehicles, roadwidth):
         #fig, ax = plt.subplots(1)
         # Add collection to axes
         #ax.add_collection(pc)
-        plt.show()
+        #plt.show()
         u = reshape(x.T,2,N).T        
         ctrlmsg = u[:,1]
         speed_output = u[:,0]
@@ -328,13 +329,18 @@ def mpcCallback(curve, steering, speed, goaltheta, all_vehicles, roadwidth):
     return ctrlmsg, speed_output
 
 
-
+def detect_anomaly(vehicles, no_of_vehicles) :
+    for i in range(no_of_vehicles):
+        if vehicles[i,3] < 5 :
+            return True
+    return False
 
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
         url=file_path + "/../Sensors_ego1.xml") as connector:
 
-    input = connector.get_input("roadSubscriber::roadReader")
+    input1 = connector.get_input("roadSubscriber::roadReader1")
+    input2 = connector.get_input("roadSubscriber::roadReader2")
     output = connector.get_output("steeringPublisher::steeringPub")
     input_speed = connector.get_input("StateSubscriber::stateReader")
     output_speed = connector.get_output("SpeedPublisher::speedPub")
@@ -355,13 +361,19 @@ with rti.open_connector(
     aggregate = 0
     nr_dist = 0
     all_vehicles = np.ones((max_no_of_vehicles,4))*10000
+    lane_new = []
+    iter_no = 0
     while True:
+        iter_no = iter_no + 1
+        if iter_no > total_no_iters and total_no_iters != -1:
+            break
         wait_topic.wait()
         wait_topic.take()
         wait_msg = []
         for sample in wait_topic.samples.valid_data_iter:
             data = sample.get_dictionary()
             wait_msg = data
+            break
         input_radar_F.wait()
         input_radar_F.take()
         no_of_vehicles = 0
@@ -424,41 +436,53 @@ with rti.open_connector(
             print("time 9 "+str(et9-st9))
             break
         
-        input.wait() # Wait for data in the input
-        input.take()
-        
-        for sample in input.samples.valid_data_iter:
+        input1.wait() # Wait for data in the input
+        input1.take()
+        data1 = []
+        data2 = []
+        for sample in input1.samples.valid_data_iter:
             st10 = time.time()
+            data1 = sample.get_dictionary()
+            break
+        input2.wait() # Wait for data in the input
+        input2.take()
+        for sample in input2.samples.valid_data_iter:
+            st10 = time.time()
+            data2 = sample.get_dictionary()
+            break
             
-            data = sample.get_dictionary()
-           
-            if len(data['roadLinesPolynomsArray']) < 2 :
-                continue
-            ll = data['roadLinesPolynomsArray'][0]
-            lr = data['roadLinesPolynomsArray'][1]
-
-            c0 = (ll['c0'] + lr['c0'])/2
-            roadwidth = ll['c0']-c0-1
-            c1 = (ll['c1'] + lr['c1'])/2
-            c2 = (ll['c2'] + lr['c2'])/2
-            c3 = (ll['c3'] + lr['c3'])/2
-            out = {}
+        if detect_anomaly(all_vehicles,no_of_vehicles) :
+            print("Anomaly detected")
+            target_speed = 0
+            curr_steering = 0
+        else:
+            ll1 = data1['roadLinesPolynomsArray'][0]
+            lr1 = data1['roadLinesPolynomsArray'][1]
+            ll2 = data2['roadLinesPolynomsArray'][0]
+            lr2 = data2['roadLinesPolynomsArray'][1]
+            c0 = (ll1['c0'] + lr1['c0'] + ll2['c0'] + lr2['c0'])/4
+            roadwidth = (ll1['c0']+ll2['c0'])/2-c0-1
+            c1 = (ll1['c1'] + lr1['c1'] + ll2['c1'] + lr2['c1'])/4
+            c2 = (ll1['c2'] + lr1['c2'] + ll2['c2'] + lr2['c2'])/4
+            c3 = (ll1['c3'] + lr1['c3'] + ll2['c3'] + lr2['c3'])/4
+            
+            # If one of the lanes is not visible
             if (c0<-threshold) : 
                 roadwidth = 2
-                c0 = ll['c0']-2*sqrt(1+ll['c1']*ll['c1'])
-                c1 = ll['c1']
-                c2 = ll['c2']
-                c3 = ll['c3']
+                c0 = ll1['c0']-2*sqrt(1+ll1['c1']**2)
+                c1 = ll1['c1']
+                c2 = ll1['c2']
+                c3 = ll1['c3']
 
             if (c0>threshold) :
                 roadwidth = 2
-                c0 = lr['c0']+2*sqrt(1+lr['c1']*lr['c1'])
-                c1 = lr['c1']
-                c2 = lr['c2']
-                c3 = lr['c3']
+                c0 = lr2['c0']+2*sqrt(1+lr2['c1']**2)
+                c1 = lr2['c1']
+                c2 = lr2['c2']
+                c3 = lr2['c3']
 
-            curve_l = [ll['c0'],ll['c1'],ll['c2'],ll['c3']]
-            curve_r = [lr['c0'],lr['c1'],lr['c2'],lr['c3']]
+            curve_l = [(ll1['c0']+ll2['c0'])/2,(ll1['c1']+ll2['c1'])/2,(ll1['c2']+ll2['c2'])/2,(ll1['c3']+ll2['c3'])/2]
+            curve_r = [(lr1['c0']+lr2['c0'])/2,(lr1['c1']+lr2['c1'])/2,(lr1['c2']+lr2['c2'])/2,(lr1['c3']+lr2['c3'])/2]
             curve = [c0,c1,c2,c3]
             print("")
             print("No of vehicles : ", no_of_vehicles)
@@ -469,34 +493,7 @@ with rti.open_connector(
             curr_steering_array, target_speed_array = (mpcCallback(curve, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
             curr_steering = float(curr_steering_array[0])
             target_speed = float(target_speed_array[0])
-            out_controls = {}
-            S1 = np.zeros(20).astype(float)
-            S2 = np.zeros(20).astype(float)
-            for i in range(20):
-                S1[i] = target_speed_array[i]
-                S2[i] = curr_steering_array[i]
-            out_controls['speedsArray'] = S1.tolist()
-            out_controls['steeringArray'] = S2.tolist()
-
-            out['AdditiveSteeringWheelAngle'] = curr_steering         
-            out['AdditiveSteeringWheelAccel'] = 0
-            out['AdditiveSteeringWheelSpeed'] = 0
-            out['AdditiveSteeringWheelTorque'] = 0
-            out['MultiplicativeSteeringWheelAccel'] = 1
-            out['MultiplicativeSteeringWheelAngle'] = 0
-            out['MultiplicativeSteeringWheelSpeed'] = 1
-            out['MultiplicativeSteeringWheelTorque'] = 1
-            out['TimeOfUpdate'] = data['timeOfUpdate']
-            print("Target Speed : ", target_speed)
-            print("Steering Command : " , curr_steering)
-            output.instance.set_dictionary(out)
-            output.write()
-            controls.instance.set_dictionary(out_controls)
-            controls.write()
-            et10 = time.time()
-            print("time 10 "+str(et10-st10))
-            break
-
+            
         input_speed.wait() # Wait for data in the input
         input_speed.take()
         for sample in input_speed.samples.valid_data_iter:
@@ -505,15 +502,26 @@ with rti.open_connector(
             vx = data['cdgSpeed_x']
             vy = data['cdgSpeed_y']
             vz = data['cdgSpeed_z']
+            accx = data['cdgAccel_x']
+            accy = data['cdgAccel_y']
+            posx = data['cdgPos_x']
+            posy = data['cdgPos_y']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
+            normalz = data['tireForce_z']
+            frictionx = data['tireForce_x']
+            frictiony = data['tireForce_y']
+            gear = data['GearEngaged']
+            orientation = data['cdgPos_heading']
+            if total_no_iters != -1 :
+                lane_new.append([posx,posy,accx,accy,curr_speed] + normalz + frictionx + frictiony + [gear])
             print("Current Speed : ", curr_speed)
             out = {}
             throtle = kp*(target_speed-curr_speed)+ki*aggregate
             print("Pedal : ", throtle)
             aggregate = aggregate + (target_speed-curr_speed)
-            out['AcceleratorAdditive'] = max(0,throtle)
+            out['AcceleratorAdditive'] = 1#max(0,throtle)
             out['AcceleratorMultiplicative'] = 0
-            out['BrakeAdditive'] = -min(0,throtle)
+            out['BrakeAdditive'] = 0#min(0,throtle)
             out['BrakeMultiplicative'] = 0
             out['ClutchAdditive'] = 0
             out['ClutchMultiplicative'] = 0
@@ -533,10 +541,33 @@ with rti.open_connector(
             output_speed.write()
             et11 = time.time()
             print("time 11 "+str(et11-st11))
+            out = {}
+            
+            out['AdditiveSteeringWheelAngle'] = curr_steering         
+            out['AdditiveSteeringWheelAccel'] = 0
+            out['AdditiveSteeringWheelSpeed'] = 0
+            out['AdditiveSteeringWheelTorque'] = 0
+            out['MultiplicativeSteeringWheelAccel'] = 1
+            out['MultiplicativeSteeringWheelAngle'] = 0
+            out['MultiplicativeSteeringWheelSpeed'] = 1
+            out['MultiplicativeSteeringWheelTorque'] = 1
+            out['TimeOfUpdate'] = data['TimeOfUpdate']
+            print("Target Speed : ", target_speed)
+            print("Steering Command : " , curr_steering)
+            output.instance.set_dictionary(out)
+            output.write()
+            et10 = time.time()
+            print("time 10 "+str(et10-st10))
             break
+
         done_topic.instance.set_dictionary(wait_msg)
         done_topic.write()
         print("message written")
+
+    lane_new = np.array(lane_new)
+    plt.plot(lane_new[:,0],lane_new[:,1],'ro')
+    np.savetxt('recorded_path.txt', lane_new, delimiter=',')
+    plt.show()
 
 
 if __name__ == '__main__':    

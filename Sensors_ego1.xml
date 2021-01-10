@@ -46,6 +46,9 @@ This code contains trade secrets of Real-Time Innovations, Inc.
       <member name="steeringArray" id = "0"  arrayDimensions="20" type="float64"/>
       <member name="speedsArray" id = "1"  arrayDimensions="20" type="float64"/>
     </struct>
+    <struct name="pathTuple" extensibility="extensible">
+      <member name="param" id = "0" arrayDimensions="805" type="float64"/>
+    </struct>
 
     <module name="IndyDS">
       <struct name= "VehicleOutput">
@@ -228,7 +231,7 @@ This code contains trade secrets of Real-Time Innovations, Inc.
     </module>
     <module name="DDS">
       <struct name= "Octets_">
-        <member name="value" id="0" sequenceMaxLength="2048" type="byte"/>
+        <member name="value" sequenceMaxLength="2048" type="byte"/>
       </struct>
     </module>
   </types>
@@ -244,9 +247,12 @@ This code contains trade secrets of Real-Time Innovations, Inc.
       <register_type name="IndyDS::CabToSteeringCorrective" type_ref="IndyDS::CabToSteeringCorrective" />
       <register_type name="controlsArray" type_ref="controlsArray" />
       <register_type name="DDS::Octets_" type_ref="DDS::Octets_" />
+      <register_type name="pathTuple" type_ref="pathTuple" />
+
       <topic name="Square" register_type_ref="ShapeType"/>
       <topic name="Circle" register_type_ref="ShapeType"/>
       <topic name="cameraRoadLinesPolynoms_F1_ego1" register_type_ref="IndyDS::RoadLinesPolynoms"/>
+      <topic name="cameraRoadLinesPolynoms_F2_ego1" register_type_ref="IndyDS::RoadLinesPolynoms"/>
       <topic name="vehicleStateVehicleOutput_ego1" register_type_ref="IndyDS::VehicleOutput"/>
       <topic name="toVehicleCabToModelCorrective_ego1" register_type_ref="IndyDS::CabToModelCorrective"/>
       <topic name="toVehicleSteeringCorrective_ego1" register_type_ref="IndyDS::CabToSteeringCorrective"/>
@@ -256,6 +262,7 @@ This code contains trade secrets of Real-Time Innovations, Inc.
       <topic name="controls_ego1" register_type_ref="controlsArray"/>
       <topic name="dds_done_reply1" register_type_ref="DDS::Octets_"/>
       <topic name="dds_done1" register_type_ref="DDS::Octets_"/>
+      <topic name="graphpath" register_type_ref="pathTuple"/>
 
     </domain>
   </domain_library>
@@ -308,7 +315,8 @@ This code contains trade secrets of Real-Time Innovations, Inc.
         <data_reader name="simWaitReader" topic_ref="dds_done1" />
       </subscriber>
       <subscriber name="roadSubscriber">
-        <data_reader name="roadReader" topic_ref="cameraRoadLinesPolynoms_F1_ego1" />
+        <data_reader name="roadReader1" topic_ref="cameraRoadLinesPolynoms_F1_ego1" />
+        <data_reader name="roadReader2" topic_ref="cameraRoadLinesPolynoms_F2_ego1" />
       </subscriber>
       <publisher name="steeringPublisher">
         <data_writer name="steeringPub" topic_ref="toVehicleSteeringCorrective_ego1" />
@@ -356,5 +364,54 @@ This code contains trade secrets of Real-Time Innovations, Inc.
         <data_reader name="MyCircleReader" topic_ref="Circle" />
       </subscriber>
     </domain_participant>
+
+    <domain_participant name="GraphParticipant" domain_ref="MyDomainLibrary::MyDomain">
+      <subscriber name="StateSubscriber">
+        <data_reader name="stateReader" topic_ref="vehicleStateVehicleOutput_ego1" />
+      </subscriber>
+      <publisher name="pathPublisher">
+        <data_writer name="pathPub" topic_ref="graphpath" />
+      </publisher>
+      <publisher name="simDonePub">
+        <data_writer name="simDoneWriter" topic_ref="dds_done_reply1" />
+      </publisher>
+      <subscriber name="simWaitSub">
+        <data_reader name="simWaitReader" topic_ref="dds_done1" />
+      </subscriber>
+      <subscriber name="radarSubscriber_F">
+        <data_reader name="radarReader_F" topic_ref="radarSensorMovableTargets_F_ego1" />
+      </subscriber>
+      <subscriber name="radarSubscriber_left">
+        <data_reader name="radarReader_left" topic_ref="radarSensorMovableTargets_Port_ego1" />
+      </subscriber>
+      <subscriber name="radarSubscriber_right">
+        <data_reader name="radarReader_right" topic_ref="radarSensorMovableTargets_Stbd_ego1" />
+      </subscriber>
+    </domain_participant>
+  
+    <domain_participant name="MyPurePursuitParticipant" domain_ref="MyDomainLibrary::MyDomain">
+      <subscriber name="pathSubscriber">
+          <data_reader name="pathSub" topic_ref="graphpath" />
+      </subscriber>
+      <publisher name="steeringPublisher">
+          <data_writer name="steeringPub" topic_ref="toVehicleSteeringCorrective_ego1" />
+      </publisher>
+      <publisher name="SpeedPublisher">
+          <data_writer name="speedPub" topic_ref="toVehicleCabToModelCorrective_ego1" />
+      </publisher>
+      <subscriber name="StateSubscriber">
+          <data_reader name="stateReader" topic_ref="vehicleStateVehicleOutput_ego1" />
+      </subscriber>
+      <publisher name="controlPublisher">
+          <data_writer name="controlPub" topic_ref="controls_ego1" />
+      </publisher>
+      <publisher name="simDonePub">
+        <data_writer name="simDoneWriter" topic_ref="dds_done_reply1" />
+      </publisher>
+      <subscriber name="simWaitSub">
+        <data_reader name="simWaitReader" topic_ref="dds_done1" />
+      </subscriber>
+    </domain_participant>
+ 
   </domain_participant_library>
 </dds>

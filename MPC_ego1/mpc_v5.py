@@ -4,6 +4,7 @@ from os import path as os_path
 from casadi import *
 import math
 import numpy as np
+import time
 import rticonnextdds_connector as rti
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
@@ -40,15 +41,20 @@ predicted_y = 0
 predicted_theta = 0
 predicted_v = 0
 
-##########     Hyperparameters     #################
+##########   Hyperparameters     #################
 
-gear_throttles = [3000,2575,0,2375,1975,1532,1300]
-gear_change_speeds = [15,22,23.4,29.2,39.2,50]
-mass = 460 # in Kg
+vehicle_length_r = 2
+blocking_maneuver_cost = 0.5
+start_throttle = 1 # Throttle to give at start
+start_speed = 2 # Speed in m/s to give start_throttle
+gear_throttles = [2770,3320,3390,3660,3660,3800]
+gear_change_speeds = [18.2,28.4,38.5,47,55.5]
+air_resistance_const = 0.43
+mass = 720 # in Kg
 tolerance = 2
-save_path_after = 2500
+save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
-file_new_path = "./coordinates_nc2.txt" # File in which the new coordinates will be saved
+file_new_path = "./coordinates_nc.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
 penalty_out_of_road = 6 # Penalise for planning path outside the road
@@ -67,18 +73,18 @@ kd=0
 threshold = 20000
 dist_threshold = 0.25
 
-##########     Global variables     #################
+##########   Global variables    #################
 
 control_sample = np.zeros((2,N))
 
 
-###########     Dynamic Model      ##################
+###########  Dynamic Model    ##################
 
 rhs=[
         (v)*cos(theta+((atan(tan(delta/9.9)))/2)),
         (v)*sin(theta+((atan(tan(delta/9.9)))/2)),
         (v)*sin(atan(tan(delta/9.9)))/L,
-        ((v>=0)*(v<gear_change_speeds[0])*c*gear_throttles[0]+(v>=gear_change_speeds[0])*(v<gear_change_speeds[1])*c*gear_throttles[1]+(v>=gear_change_speeds[1])*(v<gear_change_speeds[2])*c*gear_throttles[2]+(v>=gear_change_speeds[2])*(v<gear_change_speeds[3])*c*gear_throttles[3]+(v>=gear_change_speeds[3])*(v<gear_change_speeds[4])*c*gear_throttles[4]+(v>=gear_change_speeds[4])*(v<gear_change_speeds[5])*c*gear_throttles[5]+(v>=gear_change_speeds[5])*c*gear_throttles[6]-0.43*v*v+(c<0)*c)/mass
+        ((v>=0)*(v<gear_change_speeds[0])*c*gear_throttles[0]+(v>=gear_change_speeds[0])*(v<gear_change_speeds[1])*c*gear_throttles[1]+(v>=gear_change_speeds[1])*(v<gear_change_speeds[2])*c*gear_throttles[2]+(v>=gear_change_speeds[2])*(v<gear_change_speeds[3])*c*gear_throttles[3]+(v>=gear_change_speeds[3])*(v<gear_change_speeds[4])*c*gear_throttles[4]+(v>=gear_change_speeds[4])*c*gear_throttles[5]-air_resistance_const*v*v+(c<0)*c)/mass
     ]
 rhs=vertcat(*rhs)
 f=Function('f',[states,controls],[rhs])
@@ -100,6 +106,10 @@ F_dash_l = SX.sym('Fdl',no_iters,N)
 F_val_l = SX.sym('Fvl',no_iters,N)
 F_dash_r = SX.sym('Fdr',no_iters,N)
 F_val_r = SX.sym('Fvr',no_iters,N)
+other_vehicle_x = SX.sym('ovx',max_no_of_vehicles,N+1)
+other_vehicle_y = SX.sym('ovy',max_no_of_vehicles,N+1)
+other_vehicle_v = SX.sym('ovv',max_no_of_vehicles,N+1)
+other_vehicle_t = SX.sym('ovt',max_no_of_vehicles,N+1)
 R = SX.sym('R',1,1)
 
 for k in range(0,N,1):
@@ -124,6 +134,12 @@ obj=64000
 # (9,10,11,12), (13,14,15,16) ...... (9+4k,10+4k,11+4k,12+4k) : (x,y,velx,vely) for all the surrounding vehicles
 # (-8,-7,-6,-5) : Left lane boundary C0, C1, C2, C3
 # (-4,-3,-2,-1) : Right lane boundary C0, C1, C2, C3
+
+for t in range(max_no_of_vehicles) : 
+    other_vehicle_x[t,0] = P[9+4*t]
+    other_vehicle_y[t,0] = P[10+4*t]
+    other_vehicle_v[t,0] = (P[11+4*t]**2 + P[12+4*t]**2)**0.5
+    other_vehicle_t[t,0] = atan(P[12+4*t]/P[11+4*t])
 
 for k in range(0,N,1):
     st=X[:,k]
@@ -162,10 +178,16 @@ for k in range(0,N,1):
     pen[1,k] = distance_r + tolerance
     obj = obj + penalty_out_of_road*(P[0]<10)*(pen[0,k]>0)*pen[0,k]**2 # Penalise for going out of left lane
     obj = obj + penalty_out_of_road*(P[0]<10)*(pen[1,k]>0)*pen[1,k]**2 # Penalise for going out of right lane
-    
+    Radius = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))
     for t in range(max_no_of_vehicles) : 
-        obj = obj + ((((P[9+4*t]-X[0,0])**2+(P[10+4*t]-X[1,0])**2))<100)*(obs_dist/((P[9+4*t]+(k)*P[11+4*t]*T-st[0])**2+(P[10+4*t]+(k)*P[12+4*t]*T-st[1])**2)) # To maintain safe distance from other vehicles
-    
+        x_v = (other_vehicle_x[t,k]-st[0])*cos(atan(F_dash[0,k]))+(other_vehicle_y[t,k]-st[1])*sin(atan(F_dash[0,k]))
+        y_v = (other_vehicle_y[t,k]-st[1])*cos(atan(F_dash[0,k]))-(other_vehicle_x[t,k]-st[0])*sin(atan(F_dash[0,k]))
+        obj = obj + blocking_maneuver_cost*(x_v < -vehicle_length_r)*(y_v>0)*(y_v)
+        obj = obj + (x_v > -vehicle_length_r)*((((P[9+4*t]-X[0,0])**2+(P[10+4*t]-X[1,0])**2))<100)*(obs_dist/((other_vehicle_x[t,k]-st[0])**2+(other_vehicle_y[t,k]-st[1])**2)) # To maintain safe distance from other vehicles
+        other_vehicle_t[t,k+1] = other_vehicle_t[t,k] + T*(other_vehicle_v[t,k]/Radius)
+        other_vehicle_x[t,k+1] = other_vehicle_x[t,k] + other_vehicle_v[t,k]*cos(other_vehicle_t[t,k])*T
+        other_vehicle_y[t,k+1] = other_vehicle_y[t,k] + other_vehicle_v[t,k]*sin(other_vehicle_t[t,k])*T
+        other_vehicle_v[t,k+1] = other_vehicle_v[t,k]
     obj = obj - Q_along*st[3]*cos(atan(F_dash[0,k])-st[2])*R[0,0] # To move along the lane 
     obj = obj + Q_dist*(P[3]+P[4]*st[0]+P[5]*st[0]*st[0]+P[6]*st[0]*st[0]*st[0]-st[1])**2 # Distance from the center lane
     obj = obj + con.T@R1@con # Penalise for more steering angle
@@ -177,7 +199,7 @@ for k in range(0,N-1,1):
 
 opt_variables=vertcat(U)
 OPT_variables = reshape(U,2*N,1)
-g_func = reshape(g,2*N,1)  
+g_func = reshape(g,2*N+4,1)  
 nlp_prob = {'f': obj, 'x':OPT_variables, 'p': P,'g':g_func}
 options = {
             'ipopt.print_level' : 0,
@@ -199,13 +221,14 @@ solver=nlpsol("solver","ipopt",nlp_prob,options)
 
 lbx=np.zeros(2*N)
 ubx=np.zeros(2*N)
-lbg=np.zeros(2*(N+1))
-ubg=np.zeros(2*N+2)
+lbg=np.zeros(2*(N+2))
+ubg=np.zeros(2*N+4)
 
 for k in range (0,2*N,2): 
     lbx[k]=-6000
     ubx[k]=1
     lbg[k]=-100
+    ubg[k] = 100
     if k>N//4:
         ubg[k]=0
 
@@ -213,7 +236,8 @@ for k in range (1,(2*N),2):
     lbx[k]=-math.pi
     ubx[k]=math.pi
     lbg[k]=-100
-    if k>n//4:
+    ubg[k] = 100
+    if k>N//4:
         ubg[k]=0
 
 lbg[2*N] = -100000
@@ -243,8 +267,8 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         k = trajectory_to_follow.shape[0]
         mini = 0
         minval = 10000
-        print(curr_pos)
-        print(trajectory_to_follow.shape)
+        #print(curr_pos)
+        #print(trajectory_to_follow.shape)
         for i in range(k):
             if dist1(trajectory_to_follow[i,0], trajectory_to_follow[i,1], curr_pos[0], curr_pos[1]) < minval:
                 minval = dist1(trajectory_to_follow[i,0], trajectory_to_follow[i,1], curr_pos[0], curr_pos[1])
@@ -253,12 +277,12 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         points = np.array(points)
         tr_matrix = np.array([[cos(angle_heading),-sin(angle_heading)],[sin(angle_heading),cos(angle_heading)]])
         points = np.matmul(points,tr_matrix)
-        print(points)
+        #print(points)
         M = np.array([points[:,0]**0,points[:,0] , points[:,0]**2, points[:,0]**3]).T
         
         C = np.matmul(np.linalg.inv(M),points[:,1:])
         curve = [C[0],C[1],C[2],C[3]]
-        print(curve)
+        #print(curve)
     
     p=current_pose+curve+current_control
     for i in range(max_no_of_vehicles) : 
@@ -375,7 +399,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
         # Add collection to axes
         #ax.add_collection(pc)
         #plt.show()
-        u = reshape(x.T,2,N).T        
+        u = reshape(x.T,2,N).T      
         ctrlmsg = u[:,1]
         speed_output = u[:,0]
         return ctrlmsg, speed_output
@@ -383,8 +407,8 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
     control_sample[0,:] = 1
     control_sample[1,:] = 0
     x0=reshape(control_sample,2*N,1)
-    print(lbg)
-    print(ubg)
+    #print(lbg)
+    #print(ubg)
     so=solver(x0=x0,p=p,lbx=lbx,ubx=ubx,lbg=lbg,ubg=ubg) 
     x=so['x']
     g=so['g']
@@ -398,13 +422,19 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
     return ctrlmsg, control_output
 
 
+def detect_anomaly(vehicles, no_of_vehicles) :
+    # for i in range(no_of_vehicles):
+    #    if vehicles[i,3] < 5 :
+    #        return True
+    return False
 
 
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
-        url=file_path + "/../Sensors_ego1.xml") as connector:
+        url=file_path + "/../Sensors_ego2.xml") as connector:
 
-    input = connector.get_input("roadSubscriber::roadReader")
+    input1 = connector.get_input("roadSubscriber::roadReader1")
+    input2 = connector.get_input("roadSubscriber::roadReader2")
     output = connector.get_output("steeringPublisher::steeringPub")
     input_speed = connector.get_input("StateSubscriber::stateReader")
     output_speed = connector.get_output("SpeedPublisher::speedPub")
@@ -421,7 +451,7 @@ with rti.open_connector(
     #Initialise
     curr_steering = 0
     curr_speed = 0
-    target_speed = 0
+    target_throttle = 0
     aggregate = 0
     nr_dist = 0
     all_vehicles = np.ones((max_no_of_vehicles,4))*10000
@@ -435,15 +465,15 @@ with rti.open_connector(
     while True:
         total_itr=total_itr+1
         itr = itr+1
-        if total_itr > save_path_after :
+        if total_itr > save_path_after and save_path_after!=-1:
             break
         print("Iteration no", total_itr)
-
         input_radar_F.wait()
         input_radar_F.take()
         no_of_vehicles = 0
         all_vehicles[:,:2] = 10000
-        all_vehicles[:,2:] = 0
+        all_vehicles[:,2] = 1
+        all_vehicles[:,3] = 0
         wait_topic.wait()
         wait_topic.take()
         wait_msg = []
@@ -468,36 +498,42 @@ with rti.open_connector(
             break
         input_radar_left.wait()
         input_radar_left.take()
+        print("From left radar")
         for sample in input_radar_left.samples.valid_data_iter:
             data = sample.get_dictionary()
             for k in range(len(data['targetsArray'])):
-                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posYInChosenRef']
-                all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
-                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
-                all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
+                if(-data['targetsArray'][k]['posYInChosenRef']<0) :
+                    continue
+                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posYInChosenRef']
+                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedX']
+                all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedY']
                 no_of_vehicles +=1
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
-                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
-                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
-                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
+                print("X : ", -data['targetsArray'][k]['posXInChosenRef'])
+                print("Y : ", -data['targetsArray'][k]['posYInChosenRef'])
+                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedX'])
+                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedY'])
             break
         
+        print("From right radar")
         input_radar_right.wait()
         input_radar_right.take()
         for sample in input_radar_right.samples.valid_data_iter:
             data = sample.get_dictionary()
             for k in range(len(data['targetsArray'])):
-                all_vehicles[no_of_vehicles,0] = data['targetsArray'][k]['posYInChosenRef']
-                all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posXInChosenRef']
-                all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedY']
-                all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedX']
+                if (data['targetsArray'][k]['posXInChosenRef']>0) :
+                    continue
+                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posYInChosenRef']
+                all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles += 1
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", data['targetsArray'][k]['posYInChosenRef'])
-                print("Y : ", -data['targetsArray'][k]['posXInChosenRef'])
-                print("Speed X : ", data['targetsArray'][k]['absoluteSpeedY'])
-                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedX'])
+                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
+                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
+                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
+                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
             break
         input_speed.wait() # Wait for data in the input
         input_speed.take()
@@ -512,56 +548,74 @@ with rti.open_connector(
             px = data['cdgPos_x']  
             py = data['cdgPos_y']  
             angle_heading = data['cdgPos_heading']
+            print('yaw :',angle_heading)
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
-            if itr>10 :
+            if itr>10 and save_path_after!=-1 :
                 itr = 0
                 traj_followed.append([px,py,curr_speed])
             print("Current Speed : ", curr_speed)
+            
+        input1.wait() # Wait for data in the input
+        input1.take()
+        data1 = []
+        data2 = []
+        for sample in input1.samples.valid_data_iter:
+            st10 = time.time()
+            data1 = sample.get_dictionary()
             break
-        input.wait() # Wait for data in the input
-        input.take()
-        for sample in input.samples.valid_data_iter:
-            data = sample.get_dictionary()
-           
-            if len(data['roadLinesPolynomsArray']) < 2 :
-                continue
-            ll = data['roadLinesPolynomsArray'][0]
-            lr = data['roadLinesPolynomsArray'][1]
-
-            c0 = (ll['c0'] + lr['c0'])/2
-            roadwidth = ll['c0']-c0-1
-            c1 = (ll['c1'] + lr['c1'])/2
-            c2 = (ll['c2'] + lr['c2'])/2
-            c3 = (ll['c3'] + lr['c3'])/2
-            out = {}
+        input2.wait() # Wait for data in the input
+        input2.take()
+        for sample in input2.samples.valid_data_iter:
+            st10 = time.time()
+            data2 = sample.get_dictionary()
+            break
+            
+        if detect_anomaly(all_vehicles,no_of_vehicles) :
+            print("Anomaly detected")
+            target_throttle = 0
+            curr_steering = 0
+        else:
+            ll1 = data1['roadLinesPolynomsArray'][0]
+            lr1 = data1['roadLinesPolynomsArray'][1]
+            ll2 = data2['roadLinesPolynomsArray'][0]
+            lr2 = data2['roadLinesPolynomsArray'][1]
+            c0 = (ll1['c0'] + lr1['c0'] + ll2['c0'] + lr2['c0'])/4
+            roadwidth = (ll1['c0']+ll2['c0'])/2-c0-1
+            c1 = (ll1['c1'] + lr1['c1'] + ll2['c1'] + lr2['c1'])/4
+            c2 = (ll1['c2'] + lr1['c2'] + ll2['c2'] + lr2['c2'])/4
+            c3 = (ll1['c3'] + lr1['c3'] + ll2['c3'] + lr2['c3'])/4
+            
+            # If one of the lanes is not visible
             if (c0<-threshold) : 
                 roadwidth = 2
-                c0 = ll['c0']-2*sqrt(1+ll['c1']*ll['c1'])
-                c1 = ll['c1']
-                c2 = ll['c2']
-                c3 = ll['c3']
+                c0 = ll1['c0']-2*sqrt(1+ll1['c1']**2)
+                c1 = ll1['c1']
+                c2 = ll1['c2']
+                c3 = ll1['c3']
 
             if (c0>threshold) :
                 roadwidth = 2
-                c0 = lr['c0']+2*sqrt(1+lr['c1']*lr['c1'])
-                c1 = lr['c1']
-                c2 = lr['c2']
-                c3 = lr['c3']
+                c0 = lr2['c0']+2*sqrt(1+lr2['c1']**2)
+                c1 = lr2['c1']
+                c2 = lr2['c2']
+                c3 = lr2['c3']
 
-            curve_l = [ll['c0'],ll['c1'],ll['c2'],ll['c3']]
-            curve_r = [lr['c0'],lr['c1'],lr['c2'],lr['c3']]
+            curve_l = [(ll1['c0']+ll2['c0'])/2,(ll1['c1']+ll2['c1'])/2,(ll1['c2']+ll2['c2'])/2,(ll1['c3']+ll2['c3'])/2]
+            curve_r = [(lr1['c0']+lr2['c0'])/2,(lr1['c1']+lr2['c1'])/2,(lr1['c2']+lr2['c2'])/2,(lr1['c3']+lr2['c3'])/2]
             curve = [c0,c1,c2,c3]
-            print("")
+            print("Time", data['TimeOfUpdate'])
             print("No of vehicles : ", no_of_vehicles)
             print("Curve left : ", curve_l)
             print("Curve right : ", curve_r)
-            print("Time", data['timeOfUpdate'])
             print("Curve : ", curve)
             curr_steering_array, target_speed_array = (mpcCallback(trajectory_to_follow.T, np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
+            out = {}
+            if curr_speed < start_speed :
+                target_throttle = start_throttle
             out['AcceleratorAdditive'] = max(0,target_throttle)
             out['AcceleratorMultiplicative'] = 0
             out['BrakeAdditive'] = -min(0,target_throttle)
@@ -580,11 +634,11 @@ with rti.open_connector(
             out['WantedGear'] = 1
             
             out['TimeOfUpdate'] = data['TimeOfUpdate']
-            output.instance.set_dictionary(out)
-            output.write()
-            print("Target Speed:", target_speed)
-            curr_steering = curr_steerings[0]
-            out_steering['AdditiveSteeringWheelAngle'] = curr_steering         
+            output_speed.instance.set_dictionary(out)
+            output_speed.write()
+            print("Target Throttle:", target_throttle)
+            out_steering = {}
+            out_steering['AdditiveSteeringWheelAngle'] = curr_steering 
             out_steering['AdditiveSteeringWheelAccel'] = 0
             out_steering['AdditiveSteeringWheelSpeed'] = 0
             out_steering['AdditiveSteeringWheelTorque'] = 0
@@ -594,13 +648,13 @@ with rti.open_connector(
             out_steering['MultiplicativeSteeringWheelTorque'] = 1
             out_steering['TimeOfUpdate'] = data['TimeOfUpdate']
             print("Steering Command : " , curr_steering)
-            output_steering.instance.set_dictionary(out_steering)
-            output_steering.write()
-            print("Time: ", data['TimeOfUpdate'])
-            break
+            output.instance.set_dictionary(out_steering)
+            output.write()
+            #print("Time: ", data['TimeOfUpdate'])
         done_topic.instance.set_dictionary(wait_msg)
         done_topic.write()
         print("message written")
+        print("")
     
     traj_followed = np.array(traj_followed).T/100.0
     print("Trajectory followed :-")
@@ -610,5 +664,5 @@ with rti.open_connector(
     np.savetxt(file_new_path, traj_followed, delimiter=',')
     plt.show()
 
-if __name__ == '__main__':    
+if __name__ == '__main__':  
     start()
