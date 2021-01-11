@@ -235,7 +235,7 @@ def start():
 		print("Waiting for data...")
 
 		# Initialise
-		curr_steering = 0
+		# curr_steering = 0
 		curr_speed = 0
 		target_speed = 0
 		aggregate = 0
@@ -281,7 +281,6 @@ def start():
 			print(F'vx->{vx}  vy->{vy} vz->{vz} velocity of car {curr_speed}')
 			steer_angle = callback_feedback(
 				data['cdgPos_x'], data['cdgPos_y'], data['cdgPos_z'], data['cdgPos_heading'])
-			target_speed
 			out = {}
 			out['AdditiveSteeringWheelAngle'] = steer_angle*math.pi/180
 			out['AdditiveSteeringWheelAccel'] = 0
@@ -310,15 +309,22 @@ def start():
 			# for sample in input_speed.samples.valid_data_iter:
 			#     st11 = time.time()
 			#     data = sample.get_dictionary()
+			
 
-			# target_speed = 22.22 -> get from data1
+
+			###############################
+			target_speed = 22.22 #-> get from data1
+			###############################
+
+
 
 			# print("Current Speed : ", curr_speed)
 			out_speed = {}
-			kp = 1
-			ki = 0
-			throtle = kp*(target_speed-curr_speed)+ki*aggregate
-
+			kp1 = 1
+			ki1 = 0
+			throtle = kp1*(target_speed-curr_speed)+ki1*aggregate
+			global start_throttle
+			global start_speed
 			if curr_speed < start_speed:
 				throtle = start_throttle
 			print("Pedal : ", throtle)
@@ -326,13 +332,15 @@ def start():
 			
 ########################################PID MIT VEL CONTROL##########################################
 			tar_vel = target_speed
-			tar_delta = steer_angle 
+			# tar_delta = steer_angle 
 			active_vel = curr_speed
 
 					# plot = Twist()
 					# output = Twist()
-			output_linear_x=None
+			output_linear_x=float()
 			error = tar_vel - active_vel
+			global error_sum
+			global prev_error
 			error_sum += error
 			error_diff = error - prev_error
 			prev_error = error
@@ -340,9 +348,15 @@ def start():
 				if tar_vel == 0:
 					output_linear_x = 0
 				else:
-					output_linear_x = output_linear_x - 5
+					output_linear_x = output_linear_x - 5      ############ why?????????????
 
 			# # updating kp, ki, kd using MIT rule
+			global kp
+			global ki
+			global kd
+			global yp
+			global yi
+			global yd
 			kp = kp + yp * error * error
 			ki = ki + yi * error * error_sum
 			kd = kd + yd * error * error_diff
@@ -351,6 +365,7 @@ def start():
 			print(f"ki is : {ki}")
 			print(f"kd is : {kd}")
 
+			global brake_threshold
 			# # PID on velocity with updated parameters
 			if error > 0.01:
 				output_linear_x = (kp * error + ki * error_sum + kd * error_diff)
@@ -364,7 +379,7 @@ def start():
 			if output_linear_x < -100:
 				output_linear_x = -100
 			# thresholding the angle
-			output_angular_z = min(30.0, max(-30.0, tar_delta))
+			# output_angular_z = min(30.0, max(-30.0, tar_delta))
 
 			
 			print(f"linear velocity : {active_vel}")
@@ -383,9 +398,11 @@ def start():
 					print ("brake")
 					print (prius_vel_brake)
 
-			prius_vel_steer = output_angular_z / 30
+			# prius_vel_steer = output_angular_z / 30
 #################################PID MIT ENDS####################################
-			out_speed['AcceleratorAdditive'] = prius_vel_throtle
+			
+			
+			out_speed['AcceleratorAdditive'] = prius_vel_throttle
 			out_speed['AcceleratorMultiplicative'] = 0
 			out_speed['BrakeAdditive'] = prius_vel_brake
 			out_speed['BrakeMultiplicative'] = 0
@@ -401,24 +418,17 @@ def start():
 			out_speed['ShiftDown'] = 0
 			out_speed['ShiftUp'] = 0
 			out_speed['WantedGear'] = 1
-
 			out_speed['TimeOfUpdate'] = data['TimeOfUpdate']
 			output_speed.instance.set_dictionary(out_speed)
 			output_speed.write()
+			
+
 			done_topic.instance.set_dictionary(wait_msg)
 			done_topic.write()
 			print("message written")
-			# en = time.time()
-			# print(time.time())
 			print("XXXXX")
-			# print("")
-			# print("")
-			# print("")
 			print(out_speed['TimeOfUpdate'])
 			print(time.time())
-			# et11 = time.time()
-			# print("time 11 "+str(et11-st11))
-
 
 if __name__ == '__main__':
 	start()
