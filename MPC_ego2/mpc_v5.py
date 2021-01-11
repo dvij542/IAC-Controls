@@ -616,7 +616,6 @@ with rti.open_connector(
 			out = {}
 			if curr_speed < start_speed :
 				target_throttle = start_throttle
-				start_throttle += start_throttle_rate
 			out['AcceleratorAdditive'] = max(0,target_throttle)
 			out['AcceleratorMultiplicative'] = 0
 			out['BrakeAdditive'] = -min(0,target_throttle)
