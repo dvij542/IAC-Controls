@@ -45,9 +45,8 @@ predicted_v = 0
 
 vehicle_length_r = 2
 blocking_maneuver_cost = 0
-start_throttle = 0
-start_throttle_rate = 0.05 # Throttle to give at start
-start_speed = 5 # Speed in m/s to give start_throttle
+start_throttle = 1 # Throttle to give at start
+start_speed = 2 # Speed in m/s to give start_throttle
 gear_throttles = [2770,3320,3390,3660,3660,3800]
 gear_change_speeds = [18.2,28.4,38.5,47,55.5]
 air_resistance_const = 0.43
