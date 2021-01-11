@@ -44,7 +44,7 @@ predicted_v = 0
 ##########   Hyperparameters     #################
 
 vehicle_length_r = 2
-blocking_maneuver_cost = 0.5
+blocking_maneuver_cost = 0
 start_throttle = 1 # Throttle to give at start
 start_speed = 2 # Speed in m/s to give start_throttle
 gear_throttles = [2770,3320,3390,3660,3660,3800]
@@ -61,7 +61,7 @@ penalty_out_of_road = 6 # Penalise for planning path outside the road
 no_iters = 3
 max_no_of_vehicles = 4
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
-    [0,2]])
+    [0,10]])
 R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 T = .04 # Time horizon
@@ -172,8 +172,8 @@ for k in range(0,N,1):
     distance_r =  ((st[0]-itr_r[no_iters-1,k])**2 + (st[1]-F_val_r[0,k])**2)**(1/2)*(2*(st[1]<F_val_r[0,k])-1)
     
     R[0,0] = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))/(((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]) - (st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))/(1+F_dash[0,k]**2)**(0.5))
-    g[0,k] =  distance_l
-    g[1,k] =  distance_r
+    g[0,k] =  0#distance_l
+    g[1,k] =  0#distance_r
     pen[0,k] = distance_l + tolerance
     pen[1,k] = distance_r + tolerance
     obj = obj + penalty_out_of_road*(P[0]<10)*(pen[0,k]>0)*pen[0,k]**2 # Penalise for going out of left lane
@@ -431,7 +431,7 @@ def detect_anomaly(vehicles, no_of_vehicles) :
 
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
-        url=file_path + "/../Sensors_ego2.xml") as connector:
+        url=file_path + "/../Sensors_ego1.xml") as connector:
 
     input1 = connector.get_input("roadSubscriber::roadReader1")
     input2 = connector.get_input("roadSubscriber::roadReader2")
@@ -502,18 +502,18 @@ with rti.open_connector(
         for sample in input_radar_left.samples.valid_data_iter:
             data = sample.get_dictionary()
             for k in range(len(data['targetsArray'])):
-                if(-data['targetsArray'][k]['posYInChosenRef']<0) :
+                if(data['targetsArray'][k]['posXInChosenRef']<0 or data['targetsArray'][k]['posXInChosenRef']>5) :
                     continue
-                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posXInChosenRef']
-                all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posYInChosenRef']
-                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedX']
-                all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posYInChosenRef']
+                all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles +=1
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", -data['targetsArray'][k]['posXInChosenRef'])
-                print("Y : ", -data['targetsArray'][k]['posYInChosenRef'])
-                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedX'])
-                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedY'])
+                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
+                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
+                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
+                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
             break
         
         print("From right radar")
@@ -522,18 +522,18 @@ with rti.open_connector(
         for sample in input_radar_right.samples.valid_data_iter:
             data = sample.get_dictionary()
             for k in range(len(data['targetsArray'])):
-                if (data['targetsArray'][k]['posXInChosenRef']>0) :
+                if (data['targetsArray'][k]['posXInChosenRef']<0 or data['targetsArray'][k]['posXInChosenRef']>5) :
                     continue
-                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posYInChosenRef']
-                all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
-                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
-                all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
+                all_vehicles[no_of_vehicles,0] = data['targetsArray'][k]['posYInChosenRef']
+                all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles += 1
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
-                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
-                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
-                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
+                print("X : ", data['targetsArray'][k]['posYInChosenRef'])
+                print("Y : ", -data['targetsArray'][k]['posXInChosenRef'])
+                print("Speed X : ", data['targetsArray'][k]['absoluteSpeedY'])
+                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedX'])
             break
         input_speed.wait() # Wait for data in the input
         input_speed.take()
@@ -548,7 +548,6 @@ with rti.open_connector(
             px = data['cdgPos_x']  
             py = data['cdgPos_y']  
             angle_heading = data['cdgPos_heading']
-            print('yaw :',angle_heading)
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
