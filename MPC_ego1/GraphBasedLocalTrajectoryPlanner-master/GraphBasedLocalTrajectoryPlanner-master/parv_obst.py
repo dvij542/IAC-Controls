@@ -66,27 +66,12 @@ ltpl_obj = graph_ltpl.Graph_LTPL.Graph_LTPL(path_dict=path_dict,
                                             log_to_file=False)
 
 # calculate offline graph
-ltpl_obj.graph_init()
+ltpl_obj.graph_init(1.0,0.43,720)
 
 # set start pose based on first point in provided reference-line
 refline = graph_ltpl.imp_global_traj.src.\
     import_globtraj_csv.import_globtraj_csv(import_path=path_dict['globtraj_input_path'])[0]
-pos_est = refline[0, :]
-heading_est = np.arctan2(np.diff(refline[0:2, 1]), np.diff(refline[0:2, 0])) - np.pi / 2
-vel_est = 0.0
 
-# set start pos
-ltpl_obj.set_startpos(pos_est=pos_est,
-                      heading_est=heading_est)
-
-# ----------------------------------------------------------------------------------------------------------------------
-# ONLINE LOOP ----------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-
-traj_set = {'straight': None}
-sel_action = 'straight'
-
-tic = time.time()
 
 
 from sys import path as sys_path
@@ -112,7 +97,49 @@ with rti.open_connector(
         # input_odom.wait() # Wait for data in the input
         max_no_of_vehicles = 4
         all_vehicles = np.ones((max_no_of_vehicles,4))*10000
-  
+
+        # wait_topic.wait()
+        # wait_topic.take()
+        # wait_msg = []
+        # for sample in wait_topic.samples.valid_data_iter:
+        #     data = sample.get_dictionary()
+        #     wait_msg = data
+        #     break
+        
+        # input_odom.wait()
+        # input_odom.take()
+        #     # print(time.time())
+        # for sample in input_odom.samples.valid_data_iter:
+        #     odom_data = sample.get_dictionary()
+        #     break
+        
+        # done_topic.instance.set_dictionary(wait_msg)
+        # done_topic.write()
+        # vel_est = odom_data['cdgSpeed_x'] ## use sample for odom data
+        # pos_est = [odom_data['cdgPos_x'],odom_data['cdgPos_y']]
+        # print("truee")
+        # print(pos_est)
+        pos_est = [-298.74 , -1808.66]
+        vel_est = 0
+        pos_est = np.asarray(pos_est)
+        # print("XXXXX" + str(odom_data['cdgPos_heading']))
+        # print("ggg")
+        # pos_est = refline[0, :]
+        heading_est = np.arctan2(np.diff(refline[0:2, 1]), np.diff(refline[0:2, 0])) - np.pi / 2
+        # vel_est = 0.0
+
+        # set start pos
+        ltpl_obj.set_startpos(pos_est=pos_est,
+                            heading_est=heading_est,vel_est=vel_est)
+
+        # ----------------------------------------------------------------------------------------------------------------------
+        # ONLINE LOOP ----------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------------------
+
+        traj_set = {'straight': None}
+        sel_action = 'straight'
+
+        tic = time.time()
         while True:
             # -- SELECT ONE OF THE PROVIDED TRAJECTORIES -----------------------------------------------------------------------
             # (here: brute-force, replace by sophisticated behavior planner)
@@ -221,16 +248,20 @@ with rti.open_connector(
                             'type': "physical",     # type 'physical' (only class implemented so far)
                             'X': all_vehicles[i,0] + odom_data['cdgPos_x'],             # x coordinate
                             'Y': all_vehicles[i,1] + odom_data['cdgPos_y'],             # y coordinate
-                            'theta': all_vehicles[i,3] + odom_data['cdgPos_heading'],          # orientation (north = 0.0)
+                            'theta': all_vehicles[i,3] + odom_data['cdgPos_heading'] - math.pi/2,          # orientation (north = 0.0)
                             'v': all_vehicles[i,2],              # velocity along theta
-                            'length': 1.9,          # length of the object 
-                            'width': 0.4             # width of the object
+                            'length': 2.0,          # length of the object 
+                            'width': 0.5             # width of the object
                             }
                 obj_list.append(cur_veh)
             print(obj_list)
-            ltpl_obj.calc_paths(prev_action_id=sel_action,
+            path_check = ltpl_obj.calc_paths(prev_action_id=sel_action,
                                 object_list=obj_list)
+            print("XXXXXXX Only Paths")
+            # for sel_action in ["right","straight","left","follow" ]:
 
+            print(path_check.keys())
+            print("XXXXXXX")
             # -- GET POSITION AND VELOCITY ESTIMATE OF EGO-VEHICLE -------------------------------------------------------------
             # (here: simulation dummy, replace with actual sensor readings)
             if traj_set[sel_action] is not None:
@@ -256,14 +287,18 @@ with rti.open_connector(
                 #             last_path=(traj_set[sel_action][0][:, 1:3]),
                 #             last_vel_course=(traj_set[sel_action][0][:, 5]),
                 #             iter_time=time.time() - tic)
-                print("XXXXXXXXXXXXXXXXXXXXXXXX")    
+                # print("XXXXXXXXXXXXXXXXXXXXXXXX")    
             tic = time.time()
 
             # -- CALCULATE VELOCITY PROFILE AND RETRIEVE TRAJECTORIES ----------------------------------------------------------
             traj_set = ltpl_obj.calc_vel_profile(pos_est=pos_est,
                                                 vel_est=vel_est)[0]
+            print("XXXXXXX Path + Velocity")
+            # for sel_action in ["right","straight","left","follow" ]:
 
-            for sel_action in ["straight","right", "left", "follow" ]:  # try to force 'right', else try next in list
+            print(traj_set.keys())
+            print("XXXXXXX")
+            for sel_action in ["right","straight","left","follow" ]:  # try to force 'right', else try next in list
                 if sel_action in traj_set.keys():
                     break
             out={}
@@ -277,4 +312,4 @@ with rti.open_connector(
             # en = time.time()
             print(time.time())
             # -- LIVE PLOT (if activated) --------------------------------------------------------------------------------------
-            #ltpl_obj.visual()
+            ltpl_obj.visual()

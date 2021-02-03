@@ -51,7 +51,7 @@ gear_throttles = [2770,3320,3390,3660,3660,3800]
 gear_change_speeds = [18.2,28.4,38.5,47,55.5]
 air_resistance_const = 0.43
 mass = 720 # in Kg
-tolerance = 2
+tolerance = 1
 save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
 file_new_path = "./coordinates_nc.txt" # File in which the new coordinates will be saved
@@ -235,8 +235,8 @@ for k in range (0,2*N,2):
 for k in range (1,(2*N),2): 
 	lbx[k]=-math.pi
 	ubx[k]=math.pi
-	lbg[k]=-100
-	ubg[k] = 100
+	lbg[k]=-10000
+	ubg[k] = 10000
 	#if k>N//4:
 	#	ubg[k]=0
 

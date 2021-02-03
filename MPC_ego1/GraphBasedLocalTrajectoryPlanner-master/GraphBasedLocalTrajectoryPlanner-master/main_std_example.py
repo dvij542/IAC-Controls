@@ -65,6 +65,7 @@ refline = graph_ltpl.imp_global_traj.src.import_globtraj_csv.\
     import_globtraj_csv(import_path=path_dict['globtraj_input_path'])[0]
 pos_est = refline[0, :]
 heading_est = np.arctan2(np.diff(refline[0:2, 1]), np.diff(refline[0:2, 0])) - np.pi / 2
+print("XXXXXXXXXXX\n"+str(heading_est))
 vel_est = 0.0
 
 # set start pos
@@ -127,7 +128,6 @@ while True:
 
     # -- SEND TRAJECTORIES TO CONTROLLER -------------------------------------------------------------------------------
     # select a trajectory from the set and send it to the controller here
-zz
     # -- LOGGING -------------------------------------------------------------------------------------------------------
     ltpl_obj.log()
 

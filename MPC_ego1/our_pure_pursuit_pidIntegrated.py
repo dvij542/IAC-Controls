@@ -145,7 +145,8 @@ def callback_feedback(odom_x, odom_y, odom_z, odom_heading):
 	cmd = min(30, max(-30, steer_angle * 180 / math.pi))
 	print('omega:', str(cmd))
 
-	return cmd
+	return cmd,cp
+
 
 	# print ("cmd published")
 
@@ -242,6 +243,7 @@ def start():
 		# nr_dist = 0
 		# all_vehicles = np.ones((max_no_of_vehicles,4))*10000
 		while True:
+			print("waiting")
 			wait_topic.wait()
 			wait_topic.take()
 			print("in while loop")
@@ -272,14 +274,17 @@ def start():
 				break
 			data1 = np.array(data1)
 			data1 = np.reshape(data1, (-1, 7)).tolist()
+			# print(data1.shape)
+			# print("----data1 starts----")
 			# print(data1)
+			# print("----data1 ends----")
 			callback_path(data1)
 			vx = data['cdgSpeed_x']
 			vy = data['cdgSpeed_y']
 			vz = data['cdgSpeed_z']
 			curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
 			print(F'vx->{vx}  vy->{vy} vz->{vz} velocity of car {curr_speed}')
-			steer_angle = callback_feedback(
+			steer_angle,goal_idx = callback_feedback(
 				data['cdgPos_x'], data['cdgPos_y'], data['cdgPos_z'], data['cdgPos_heading'])
 			out = {}
 			out['AdditiveSteeringWheelAngle'] = steer_angle*math.pi/180
@@ -291,10 +296,6 @@ def start():
 			out['MultiplicativeSteeringWheelSpeed'] = 1
 			out['MultiplicativeSteeringWheelTorque'] = 1
 			out['TimeOfUpdate'] = data['TimeOfUpdate']
-			print("XXXXX")
-			print("")
-			print("")
-			print("")
 			print(data['TimeOfUpdate'])
 			output.instance.set_dictionary(out)
 			output.write()
@@ -313,7 +314,7 @@ def start():
 
 
 			###############################
-			target_speed = 22.22 #-> get from data1
+			target_speed = data1[goal_idx][5] #-> get from data1
 			###############################
 
 
@@ -334,7 +335,6 @@ def start():
 			tar_vel = target_speed
 			# tar_delta = steer_angle 
 			active_vel = curr_speed
-
 					# plot = Twist()
 					# output = Twist()
 			output_linear_x=float()

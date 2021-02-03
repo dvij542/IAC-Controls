@@ -348,7 +348,7 @@ class Graph_LTPL(object):
                          gg_scale: np.ndarray = 1.0,
                          local_gg: dict = (5.0, 5.0),
                          ax_max_machines: np.ndarray = np.atleast_2d([100.0, 5.0]),
-                         safety_d: float = 30.0,
+                         safety_d: float = 0.5,
                          incl_emerg_traj: bool = False) -> tuple:
         """
         Calculate velocity profile for current given paths and trim to closest point on trajectory to "pos_est".
@@ -373,7 +373,7 @@ class Graph_LTPL(object):
             * **traj_time** -    time of trajectory generation (time.time())
 
         """
-
+        print("ddddd "+str(safety_d))
         self.__pos_est = pos_est
 
         # -- DETERMINE CUT INDEX BASED ON ACTUAL POSITION AND LAST PLANNED TRAJECTORY ----------------------------------

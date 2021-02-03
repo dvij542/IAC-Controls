@@ -196,7 +196,7 @@ def callback_feedback(odom_x,odom_y,odom_z,odom_heading):
 	print ('omega:', str(cmd))
 	# cross_err.linear.z = path_length[cp]
 
-	return cmd
+	return cmd , cp
 	# pub2.publish(cross_err)
 	
 	print ("cmd published")
@@ -340,7 +340,7 @@ def start():
 			vz = data['cdgSpeed_z'] 
 			curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
 			print(F'vx->{vx}  vy->{vy} vz->{vz} velocity of car {curr_speed}')
-			steer_angle = callback_feedback(data['cdgPos_x'],data['cdgPos_y'],data['cdgPos_z'],data['cdgPos_heading'])
+			steer_angle,goal_idx = callback_feedback(data['cdgPos_x'],data['cdgPos_y'],data['cdgPos_z'],data['cdgPos_heading'])
 			out = {}
 			out['AdditiveSteeringWheelAngle'] = steer_angle*math.pi/180
 			out['AdditiveSteeringWheelAccel'] = 0
@@ -369,7 +369,7 @@ def start():
 			# for sample in input_speed.samples.valid_data_iter:
 			#     st11 = time.time()
 			#     data = sample.get_dictionary()
-			target_speed = 22.22
+			target_speed = data1[goal_idx][5]
 
 			
 			# print("Current Speed : ", curr_speed)
