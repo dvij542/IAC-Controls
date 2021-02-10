@@ -384,8 +384,8 @@ if __name__ == "__main__":
             raise ValueError("Could not find any logs in the specified folder! Please provide a file path argument.")
 
         # specific file
-        # file_path = os.path.expanduser(toppath + '/logs/2019_03_22/11_00_47_data.csv')
-
+        # file_path = os.path.expanduser(toppath + '\\logs\\graph_ltpl\\2021_02_03\\17_41_50_data.csv')
+    # file_path = os.path.expanduser(toppath + '\\logs\\graph_ltpl\\2021_02_03\\17_41_50_')
     # extract common file parent
     file_path = file_path[:file_path.rfind("_")]
 
@@ -393,7 +393,7 @@ if __name__ == "__main__":
     file_path_data = file_path + "_data.csv"
     file_path_msg = file_path + "_msg.csv"
     file_path_follow = file_path + "_follow.csv"
-
+    print(file_path_data+"\n")
     # ----- FOLLOW MODE DEBUG PLOT -------------------------------------------------------------------------------------
     if os.path.isfile(file_path_follow):
         time_f = np.genfromtxt(file_path_follow, delimiter=';', skip_header=0, names=True)['time']

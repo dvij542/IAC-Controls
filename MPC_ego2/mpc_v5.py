@@ -53,7 +53,7 @@ air_resistance_const = 0.43
 mass = 720 # in Kg
 tolerance = 2
 Q_ang = 10
-save_path_after = 1000 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+save_path_after = 1200 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
 file_new_path = "./test.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
@@ -73,6 +73,10 @@ ki=0
 kd=0
 threshold = 20000
 dist_threshold = 0.25
+kp_start = 2
+ki_start = 0.05
+kd_start = 2
+I_start = 0.8
 
 ##########   Global variables    #################
 
@@ -465,6 +469,9 @@ with rti.open_connector(
     traj_followed = []
     itr = 0
     total_itr=0
+    P = 0
+    I = I_start
+    D = 0
     while True:
         total_itr=total_itr+1
         itr = itr+1
@@ -552,11 +559,13 @@ with rti.open_connector(
             px = data['cdgPos_x']  
             py = data['cdgPos_y']  
             lsr = data['LSR']
+            forcex = data['tireForce_x']
+            normalz = data['groundNormal_z']
             angle_heading = data['cdgPos_heading']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
-            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3]])
+            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3]])
             print("Current Speed : ", curr_speed)
             
         input1.wait() # Wait for data in the input
@@ -617,7 +626,13 @@ with rti.open_connector(
             target_throttle = float(target_speed_array[0])
             out = {}
             if curr_speed < start_speed :
-                target_throttle = target_throttle - 2*lsr[2]
+                P = kp_start*(0.06 - lsr[2])
+                target_throttle = P + I + D
+                I = I + ki_start*(0.06 - lsr[2])
+                print("I : ", I)
+                D = kd_start*0
+                if target_throttle<0 :
+                    target_throttle = target_throttle*1000
             else :
                 Q_ang = 0
             if curr_speed > 83 :

@@ -78,6 +78,7 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
     object_besides_const_path = False
     if const_path_seg is not None and np.size(const_path_seg, axis=0) >= 2:
         # get start pos (use pos_est if provided, else use start of constant path [may contain passed path])
+        print("line 81\n")
         if pos_est is not None:
             pos_start = pos_est
         else:
@@ -102,6 +103,7 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
 
             # if object within constant path segment
             if s_start <= s_obj <= s_end or (s_start > s_end and (s_obj > s_start or s_obj < s_end)):
+                print("line 106\n")
                 object_besides_const_path = True
 
                 # calculate object distance
@@ -111,21 +113,25 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
                     obj_dist = s_obj - s_start
 
                 if closest_obj_index is None or obj_dist < smallest_obj_dist:
+
                     closest_obj_index = obj_idx
                     smallest_obj_dist = obj_dist
-
+                
+                print(f"closest object distance {smallest_obj_dist}\n")
                 # check if constant path intersects with object
                 obstacle_ref = np.power(vehicle.get_radius() + graph_base.veh_width / 2, 2)
                 distances2 = np.power(const_path_seg[:, 0] - vehicle.get_pos()[0], 2) + np.power(
                     const_path_seg[:, 1] - vehicle.get_pos()[1], 2)
                 if any(distances2 <= obstacle_ref):
                     obj_in_const_path = True
+                    print("line 127\n")
 
     # -- DEFINE ACTION SETS TO BE GENERATED ----------------------------------------------------------------------------
     # NOTE: Ensure to first list the straight/follow options (if the planning horizon is reduced there, it will be also
     #       reduced for the other primitives
     # if an object is located in the constant path section (either overtaking or follow mode)
     if action_sets and (obj_in_const_path or object_besides_const_path):
+        print("line 134 \n")
         action_set_filters = ["planning_range"]
         action_set_goal_layer = end_layer
         action_set_names = ["follow"]
@@ -134,15 +140,17 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
         if not obj_in_const_path and (last_action_id == "left" or last_action_id == "right"):
             action_set_filters.append("default")
             action_set_names.append(last_action_id)
+            print("line 143 \n")
 
         # if object only besides path, but no overtaking active -> offer left and right
         elif not obj_in_const_path:
             # array of all filters
             action_set_filters.extend(["default", "default"])
             action_set_names.extend(["left", "right"])
-
+            print("line 150")
     # if action sets enabled and a vehicle in the planning horizon
     elif action_sets and closest_obj_index is not None and closest_obj_node is not None:
+        print("line 153\n")
         # -- generate node filters for each action set (overtake left, overtake right, follow) --
         # overtake left
         block_set = list(range(closest_obj_node[1], graph_base.nodes_in_layer[closest_obj_node[0]]))
@@ -169,6 +177,7 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
         action_set_goal_layer = end_layer
         action_set_names = ["follow", "left", "right"]
     else:
+        print("line 180\n")
         action_set_filters = ["default"]
         action_set_goal_layer = end_layer
         action_set_names = ["straight"]
@@ -213,6 +222,7 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
 
             # exit if solution is found or when planning a special maneuver (e.g. overtaking -> use same goal as s/f)
             if loc_path_nodes_list is not None or not (action_set_name == "follow" or action_set_name == "straight"):
+                print("ovetake found niceeee \n\n\n")
                 break
             else:
                 mod_action_set_goal_layer -= 1
@@ -223,6 +233,7 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
         reduced_horizon = (mod_action_set_goal_layer != action_set_goal_layer
                            or (not graph_base.closed and action_set_goal_layer == graph_base.num_layers - 1))
         if reduced_horizon:
+            print("line 236 \n")
             # Check if vehicle is still in range
             obj_in_mod_range = (closest_obj_node is not None
                                 and ((start_node[0] <= closest_obj_node[0] <= mod_action_set_goal_layer)
@@ -230,24 +241,30 @@ def main_online_path_gen(graph_base: graph_ltpl.data_objects.GraphBase.GraphBase
                                          and (closest_obj_node[0] >= start_node[0]
                                               or closest_obj_node[0] <= mod_action_set_goal_layer))))
             if not obj_in_const_path and closest_obj_node is not None and not obj_in_mod_range:
+                print("removing overtaking options line 244")
                 # rename follow mode to straight and remove overtaking options
                 if action_set_name == "follow" or action_set_name == "straight":
+                    print("line 247\n")
                     action_set_name = "straight"
                     logging.getLogger("local_trajectory_logger"). \
                         info("No feasible solution for '" + action_set_name + "'! Reduced planning horizon!")
                 else:
                     # remove all other options
                     loc_path_nodes_list = None
+                    print("line 254 \n")
             else:
+                print("line 256\n")
                 logging.getLogger("local_trajectory_logger"). \
                     info("No feasible solution for '" + action_set_name + "'! Reduced planning horizon!")
 
         # If no solution is found (blocked graph), end iteration and leave action set list empty
         if loc_path_nodes_list is None:
+            print("line 262\n")
             logging.getLogger("local_trajectory_logger").\
                 debug("Action set '" + action_set_name + "' is empty! No path solution was found.")
         else:
             # Store node sequence in action set
+            print("line 267")
             action_set_nodes[action_set_name] = loc_path_nodes_list
 
             # init dict entry for action set (in order to allow multiple trajectories per set)

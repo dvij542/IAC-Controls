@@ -12,7 +12,7 @@ import math
 import json
 import time
 import configparser
-
+import datetime
 import graph_ltpl
 
 from sys import path as sys_path
@@ -53,7 +53,9 @@ track_specifier = json.loads(track_param.get('DRIVING_TASK', 'track'))
 path_dict = {'globtraj_input_path': toppath + "/inputs/traj_ltpl_cl/traj_ltpl_cl_" + track_specifier + ".csv",
              'graph_store_path': toppath + "/inputs/stored_graph.pckl",
              'ltpl_offline_param_path': toppath + "/params/ltpl_config_offline.ini",
-             'ltpl_online_param_path': toppath + "/params/ltpl_config_online.ini"
+             'ltpl_online_param_path': toppath + "/params/ltpl_config_online.ini",
+             'log_path': toppath + "/logs/graph_ltpl/",
+             'graph_log_id': datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
              }
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -63,7 +65,7 @@ path_dict = {'globtraj_input_path': toppath + "/inputs/traj_ltpl_cl/traj_ltpl_cl
 # intialize graph_ltpl-class
 ltpl_obj = graph_ltpl.Graph_LTPL.Graph_LTPL(path_dict=path_dict,
                                             visual_mode=True,
-                                            log_to_file=False)
+                                            log_to_file=True)
 
 # calculate offline graph
 ltpl_obj.graph_init(1.0,0.43,720)
@@ -120,7 +122,7 @@ with rti.open_connector(
         # print("truee")
         # print(pos_est)
         pos_est = [-298.74 , -1808.66]
-        vel_est = 0
+        vel_est = 10
         pos_est = np.asarray(pos_est)
         # print("XXXXX" + str(odom_data['cdgPos_heading']))
         # print("ggg")
@@ -311,5 +313,6 @@ with rti.open_connector(
             print("message written")
             # en = time.time()
             print(time.time())
+            ltpl_obj.log()
             # -- LIVE PLOT (if activated) --------------------------------------------------------------------------------------
-            ltpl_obj.visual()
+            # ltpl_obj.visual()
