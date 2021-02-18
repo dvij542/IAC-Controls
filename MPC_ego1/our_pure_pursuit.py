@@ -372,7 +372,7 @@ def start():
 			target_speed = data1[goal_idx][5]
 
 			
-			# print("Current Speed : ", curr_speed)
+			print(f"Current Speed :{curr_speed}, Target Speed: {target_speed} " )
 			out_speed = {}
 			kp=1
 			ki=0

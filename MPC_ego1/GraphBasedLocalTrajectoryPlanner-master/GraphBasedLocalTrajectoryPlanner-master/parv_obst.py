@@ -121,7 +121,7 @@ with rti.open_connector(
         # pos_est = [odom_data['cdgPos_x'],odom_data['cdgPos_y']]
         # print("truee")
         # print(pos_est)
-        pos_est = [-298.74 , -1808.66]
+        pos_est = [-298.69 , -1811.99]
         vel_est = 10
         pos_est = np.asarray(pos_est)
         # print("XXXXX" + str(odom_data['cdgPos_heading']))
@@ -294,13 +294,13 @@ with rti.open_connector(
 
             # -- CALCULATE VELOCITY PROFILE AND RETRIEVE TRAJECTORIES ----------------------------------------------------------
             traj_set = ltpl_obj.calc_vel_profile(pos_est=pos_est,
-                                                vel_est=vel_est)[0]
+                                                vel_est=vel_est,vel_max=86.95)[0]
             print("XXXXXXX Path + Velocity")
             # for sel_action in ["right","straight","left","follow" ]:
 
             print(traj_set.keys())
             print("XXXXXXX")
-            for sel_action in ["right","straight","left","follow" ]:  # try to force 'right', else try next in list
+            for sel_action in ["left","right","straight","follow" ]:  # try to force 'right', else try next in list
                 if sel_action in traj_set.keys():
                     break
             out={}

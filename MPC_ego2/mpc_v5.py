@@ -51,9 +51,9 @@ gear_throttles = [2770,3320,3390,3660,3660,3800]
 gear_change_speeds = [18.2,28.4,38.5,47,55.5]
 air_resistance_const = 0.43
 mass = 720 # in Kg
-tolerance = 2
+tolerance = 1
 Q_ang = 10
-save_path_after = 1200 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
 file_new_path = "./test.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
@@ -75,8 +75,8 @@ threshold = 20000
 dist_threshold = 0.25
 kp_start = 2
 ki_start = 0.05
-kd_start = 2
-I_start = 0.8
+kd_start = 1.5
+I_start = 1
 
 ##########   Global variables    #################
 
@@ -472,6 +472,7 @@ with rti.open_connector(
     P = 0
     I = I_start
     D = 0
+    throttle = 0
     while True:
         total_itr=total_itr+1
         itr = itr+1
@@ -551,6 +552,7 @@ with rti.open_connector(
         py = 0
         angle_heading = 0
         lsr = 0
+        slip_angle = 0
         for sample in input_speed.samples.valid_data_iter:
             data = sample.get_dictionary()
             vx = data['cdgSpeed_x']
@@ -562,10 +564,12 @@ with rti.open_connector(
             forcex = data['tireForce_x']
             normalz = data['groundNormal_z']
             angle_heading = data['cdgPos_heading']
+            slip_angle = data['slipAngle']
+            curr_pedal = data['gasPedal']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
-            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3]])
+            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3],throttle])
             print("Current Speed : ", curr_speed)
             
         input1.wait() # Wait for data in the input
@@ -629,14 +633,18 @@ with rti.open_connector(
                 P = kp_start*(0.06 - lsr[2])
                 target_throttle = P + I + D
                 I = I + ki_start*(0.06 - lsr[2])
-                print("I : ", I)
                 D = kd_start*0
+                print("Current throttle : ", curr_pedal)
+                print("slip angle : ",slip_angle[2])
+                print("Slip ratio : ", lsr[2])
+                print("Speed", curr_speed)
+                # target_throttle = float(input("Enter throttle command value : "))
                 if target_throttle<0 :
-                    target_throttle = target_throttle*1000
+                    target_throttle = target_throttle#*100
             else :
                 Q_ang = 0
             if curr_speed > 83 :
-                target_throttle = (316*5/18) - curr_speed
+                target_throttle = (316.3*5/18) - curr_speed
             out['AcceleratorAdditive'] = max(0,target_throttle)
             out['AcceleratorMultiplicative'] = 0
             out['BrakeAdditive'] = -min(0,target_throttle)
@@ -653,7 +661,7 @@ with rti.open_connector(
             out['ShiftDown'] = 0
             out['ShiftUp'] = 0
             out['WantedGear'] = 1
-            
+            throttle = target_throttle
             out['TimeOfUpdate'] = data['TimeOfUpdate']
             output_speed.instance.set_dictionary(out)
             output_speed.write()
