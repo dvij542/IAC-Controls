@@ -346,7 +346,7 @@ class Graph_LTPL(object):
                          vel_est: float,
                          vel_max: float = 100.0,
                          gg_scale: np.ndarray = 1.0,
-                         local_gg: dict = (5.0, 5.0),
+                         local_gg: dict = (10.0, 10.0),
                          ax_max_machines: np.ndarray = np.atleast_2d([100.0, 5.0]),
                          safety_d: float = 0.5,
                          incl_emerg_traj: bool = False) -> tuple:
