@@ -46,16 +46,16 @@ predicted_v = 0
 vehicle_length_r = 2
 blocking_maneuver_cost = 0
 start_throttle = 1 # Throttle to give at start
-start_speed = 2 # Speed in m/s to give start_throttle
+start_speed = 10 # Speed in m/s to give start_throttle
 gear_throttles = [2770,3320,3390,3660,3660,3800]
 gear_change_speeds = [18.2,28.4,38.5,47,55.5]
 air_resistance_const = 0.43
 mass = 720 # in Kg
-tolerance = 2
+tolerance = 1
 Q_ang = 10
 save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
-file_new_path = "./coordinates_nc.txt" # File in which the new coordinates will be saved
+file_new_path = "./test.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
 penalty_out_of_road = 6 # Penalise for planning path outside the road
@@ -73,6 +73,10 @@ ki=0
 kd=0
 threshold = 20000
 dist_threshold = 0.25
+kp_start = 2
+ki_start = 0.05
+kd_start = 1.5
+I_start = 1
 
 ##########   Global variables    #################
 
@@ -189,7 +193,7 @@ for k in range(0,N,1):
         other_vehicle_x[t,k+1] = other_vehicle_x[t,k] + other_vehicle_v[t,k]*cos(other_vehicle_t[t,k])*T
         other_vehicle_y[t,k+1] = other_vehicle_y[t,k] + other_vehicle_v[t,k]*sin(other_vehicle_t[t,k])*T
         other_vehicle_v[t,k+1] = other_vehicle_v[t,k]
-    obj = obj + Q_ang*(st[0]<10)*(atan(F_dash[0,k])-st[2])**2
+    obj = obj + Q_ang*(atan(F_dash[0,k])-st[2])**2
     obj = obj - Q_along*st[3]*cos(atan(F_dash[0,k])-st[2])*R[0,0] # To move along the lane 
     obj = obj + Q_dist*(P[3]+P[4]*st[0]+P[5]*st[0]*st[0]+P[6]*st[0]*st[0]*st[0]-st[1])**2 # Distance from the center lane
     obj = obj + con.T@R1@con # Penalise for more steering angle
@@ -465,6 +469,10 @@ with rti.open_connector(
     traj_followed = []
     itr = 0
     total_itr=0
+    P = 0
+    I = I_start
+    D = 0
+    throttle = 0
     while True:
         total_itr=total_itr+1
         itr = itr+1
@@ -543,6 +551,8 @@ with rti.open_connector(
         px = 0
         py = 0
         angle_heading = 0
+        lsr = 0
+        slip_angle = 0
         for sample in input_speed.samples.valid_data_iter:
             data = sample.get_dictionary()
             vx = data['cdgSpeed_x']
@@ -550,13 +560,16 @@ with rti.open_connector(
             vz = data['cdgSpeed_z']
             px = data['cdgPos_x']  
             py = data['cdgPos_y']  
+            lsr = data['LSR']
+            forcex = data['tireForce_x']
+            normalz = data['groundNormal_z']
             angle_heading = data['cdgPos_heading']
+            slip_angle = data['slipAngle']
+            curr_pedal = data['gasPedal']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
-            if itr>10 and save_path_after!=-1 :
-                itr = 0
-                traj_followed.append([px,py,curr_speed])
+            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3],throttle])
             print("Current Speed : ", curr_speed)
             
         input1.wait() # Wait for data in the input
@@ -617,7 +630,21 @@ with rti.open_connector(
             target_throttle = float(target_speed_array[0])
             out = {}
             if curr_speed < start_speed :
-                target_throttle = start_throttle
+                P = kp_start*(0.06 - lsr[2])
+                target_throttle = P + I + D
+                I = I + ki_start*(0.06 - lsr[2])
+                D = kd_start*0
+                print("Current throttle : ", curr_pedal)
+                print("slip angle : ",slip_angle[2])
+                print("Slip ratio : ", lsr[2])
+                print("Speed", curr_speed)
+                # target_throttle = float(input("Enter throttle command value : "))
+                if target_throttle<0 :
+                    target_throttle = target_throttle#*100
+            else :
+                Q_ang = 0
+            if curr_speed > 83 :
+                target_throttle = (316*5/18) - curr_speed
             out['AcceleratorAdditive'] = max(0,target_throttle)
             out['AcceleratorMultiplicative'] = 0
             out['BrakeAdditive'] = -min(0,target_throttle)
@@ -634,7 +661,7 @@ with rti.open_connector(
             out['ShiftDown'] = 0
             out['ShiftUp'] = 0
             out['WantedGear'] = 1
-            
+            throttle = target_throttle
             out['TimeOfUpdate'] = data['TimeOfUpdate']
             output_speed.instance.set_dictionary(out)
             output_speed.write()
@@ -658,7 +685,7 @@ with rti.open_connector(
         print("message written")
         print("")
     
-    traj_followed = np.array(traj_followed).T/100.0
+    traj_followed = np.array(traj_followed).T
     print("Trajectory followed :-")
     print(traj_followed)
     plt.plot(traj_followed[0],traj_followed[1],'k', lw=0.5, alpha=0.5)

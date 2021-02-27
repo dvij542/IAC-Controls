@@ -51,9 +51,9 @@ gear_throttles = [2770,3320,3390,3660,3660,3800]
 gear_change_speeds = [18.2,28.4,38.5,47,55.5]
 air_resistance_const = 0.43
 mass = 720 # in Kg
-tolerance = 2
+tolerance = 1
 Q_ang = 10
-save_path_after = 150 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
 file_new_path = "./test.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
@@ -74,7 +74,7 @@ kd=0
 threshold = 20000
 dist_threshold = 0.25
 kp_start = 2
-ki_start = 0.01
+ki_start = 0.05
 kd_start = 1.5
 I_start = 1
 
@@ -552,6 +552,7 @@ with rti.open_connector(
         py = 0
         angle_heading = 0
         lsr = 0
+        slip_angle = 0
         for sample in input_speed.samples.valid_data_iter:
             data = sample.get_dictionary()
             vx = data['cdgSpeed_x']
@@ -563,6 +564,8 @@ with rti.open_connector(
             forcex = data['tireForce_x']
             normalz = data['groundNormal_z']
             angle_heading = data['cdgPos_heading']
+            slip_angle = data['slipAngle']
+            curr_pedal = data['gasPedal']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
@@ -627,19 +630,21 @@ with rti.open_connector(
             target_throttle = float(target_speed_array[0])
             out = {}
             if curr_speed < start_speed :
-                # P = kp_start*(0.06 - lsr[2])
-                # target_throttle = P + I + D
-                # I = I + ki_start*(0.06 - lsr[2])
-                # D = kd_start*0
+                P = kp_start*(0.06 - lsr[2])
+                target_throttle = P + I + D
+                I = I + ki_start*(0.06 - lsr[2])
+                D = kd_start*0
+                print("Current throttle : ", curr_pedal)
+                print("slip angle : ",slip_angle[2])
                 print("Slip ratio : ", lsr[2])
                 print("Speed", curr_speed)
-                target_throttle = input("Enter throttle command value : ")
+                # target_throttle = float(input("Enter throttle command value : "))
                 if target_throttle<0 :
-                    target_throttle = target_throttle*100
+                    target_throttle = target_throttle#*100
             else :
                 Q_ang = 0
             if curr_speed > 83 :
-                target_throttle = (316*5/18) - curr_speed
+                target_throttle = (316.3*5/18) - curr_speed
             out['AcceleratorAdditive'] = max(0,target_throttle)
             out['AcceleratorMultiplicative'] = 0
             out['BrakeAdditive'] = -min(0,target_throttle)

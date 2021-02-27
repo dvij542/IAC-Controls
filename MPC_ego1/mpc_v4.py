@@ -40,8 +40,13 @@ L=2.9
 total_no_iters = 800
 slip_penalty = 0
 =======
+<<<<<<< HEAD
+total_no_iters = 800
+slip_penalty = 0
+=======
 slip_penalty = 2
 >>>>>>> c3b7d61f569b55661c40269d4300a79eebf0bf06
+>>>>>>> 422d40fec66a3b9fa2bc413a9bbb13d5e21d7b15
 FMax = 1  # mu X mass X g (The max force that can be exerted from the ground)
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
@@ -57,8 +62,12 @@ N = 20 # Number of control intervals
 <<<<<<< HEAD
 v_max = 80 # Max speed (m/s)
 =======
+<<<<<<< HEAD
+v_max = 80 # Max speed (m/s)
+=======
 v_max = 50 # Max speed (m/s)
 >>>>>>> c3b7d61f569b55661c40269d4300a79eebf0bf06
+>>>>>>> 422d40fec66a3b9fa2bc413a9bbb13d5e21d7b15
 kp=1 # For PID controller
 obs_dist = 10 # To maintain from other vehicles at each time step
 ki=0
@@ -381,6 +390,7 @@ with rti.open_connector(
         for sample in wait_topic.samples.valid_data_iter:
             data = sample.get_dictionary()
             wait_msg = data
+            break
         input_radar_F.wait()
         input_radar_F.take()
         no_of_vehicles = 0
@@ -448,6 +458,7 @@ with rti.open_connector(
         data1 = []
         data2 = []
         for sample in input1.samples.valid_data_iter:
+<<<<<<< HEAD
             st10 = time.time()
             data1 = sample.get_dictionary()
             break
@@ -455,6 +466,15 @@ with rti.open_connector(
         input2.take()
         for sample in input2.samples.valid_data_iter:
             st10 = time.time()
+=======
+            st10 = time.time()
+            data1 = sample.get_dictionary()
+            break
+        input2.wait() # Wait for data in the input
+        input2.take()
+        for sample in input2.samples.valid_data_iter:
+            st10 = time.time()
+>>>>>>> 422d40fec66a3b9fa2bc413a9bbb13d5e21d7b15
             data2 = sample.get_dictionary()
             break
             
@@ -500,6 +520,10 @@ with rti.open_connector(
             curr_steering_array, target_speed_array = (mpcCallback(curve, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
             curr_steering = float(curr_steering_array[0])
             target_speed = float(target_speed_array[0])
+<<<<<<< HEAD
+            
+=======
+>>>>>>> 422d40fec66a3b9fa2bc413a9bbb13d5e21d7b15
         input_speed.wait() # Wait for data in the input
         input_speed.take()
         for sample in input_speed.samples.valid_data_iter:
@@ -513,7 +537,11 @@ with rti.open_connector(
             posx = data['cdgPos_x']
             posy = data['cdgPos_y']
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
+<<<<<<< HEAD
+            normalz = data['tireForce_z']
+=======
             normalz = data['groundNormal_z']
+>>>>>>> 422d40fec66a3b9fa2bc413a9bbb13d5e21d7b15
             frictionx = data['tireForce_x']
             frictiony = data['tireForce_y']
             gear = data['GearEngaged']
@@ -569,6 +597,11 @@ with rti.open_connector(
         done_topic.instance.set_dictionary(wait_msg)
         done_topic.write()
         print("message written")
+    lane_new = np.array(lane_new)
+    plt.plot(lane_new[:,0],lane_new[:,1],'ro')
+    np.savetxt('recorded_path.txt', lane_new, delimiter=',')
+    plt.show()
+
     lane_new = np.array(lane_new)
     plt.plot(lane_new[:,0],lane_new[:,1],'ro')
     np.savetxt('recorded_path.txt', lane_new, delimiter=',')
