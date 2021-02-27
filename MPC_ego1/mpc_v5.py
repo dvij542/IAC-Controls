@@ -44,7 +44,7 @@ predicted_v = 0
 ##########   Hyperparameters     #################
 
 vehicle_length_r = 2
-blocking_maneuver_cost = 0.5
+blocking_maneuver_cost = 0
 start_throttle = 1 # Throttle to give at start
 start_speed = 2 # Speed in m/s to give start_throttle
 gear_throttles = [2770,3320,3390,3660,3660,3800]
@@ -52,6 +52,7 @@ gear_change_speeds = [18.2,28.4,38.5,47,55.5]
 air_resistance_const = 0.43
 mass = 720 # in Kg
 tolerance = 2
+Q_ang = 10
 save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
 file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
 file_new_path = "./coordinates_nc.txt" # File in which the new coordinates will be saved
@@ -61,7 +62,7 @@ penalty_out_of_road = 6 # Penalise for planning path outside the road
 no_iters = 3
 max_no_of_vehicles = 4
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
-    [0,2]])
+    [0,10]])
 R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 T = .04 # Time horizon
@@ -172,8 +173,8 @@ for k in range(0,N,1):
     distance_r =  ((st[0]-itr_r[no_iters-1,k])**2 + (st[1]-F_val_r[0,k])**2)**(1/2)*(2*(st[1]<F_val_r[0,k])-1)
     
     R[0,0] = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))/(((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]) - (st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))/(1+F_dash[0,k]**2)**(0.5))
-    g[0,k] =  distance_l
-    g[1,k] =  distance_r
+    g[0,k] =  0#distance_l
+    g[1,k] =  0#distance_r
     pen[0,k] = distance_l + tolerance
     pen[1,k] = distance_r + tolerance
     obj = obj + penalty_out_of_road*(P[0]<10)*(pen[0,k]>0)*pen[0,k]**2 # Penalise for going out of left lane
@@ -188,6 +189,7 @@ for k in range(0,N,1):
         other_vehicle_x[t,k+1] = other_vehicle_x[t,k] + other_vehicle_v[t,k]*cos(other_vehicle_t[t,k])*T
         other_vehicle_y[t,k+1] = other_vehicle_y[t,k] + other_vehicle_v[t,k]*sin(other_vehicle_t[t,k])*T
         other_vehicle_v[t,k+1] = other_vehicle_v[t,k]
+    obj = obj + Q_ang*(st[0]<10)*(atan(F_dash[0,k])-st[2])**2
     obj = obj - Q_along*st[3]*cos(atan(F_dash[0,k])-st[2])*R[0,0] # To move along the lane 
     obj = obj + Q_dist*(P[3]+P[4]*st[0]+P[5]*st[0]*st[0]+P[6]*st[0]*st[0]*st[0]-st[1])**2 # Distance from the center lane
     obj = obj + con.T@R1@con # Penalise for more steering angle
@@ -229,16 +231,16 @@ for k in range (0,2*N,2):
     ubx[k]=1
     lbg[k]=-100
     ubg[k] = 100
-    if k>N//4:
-        ubg[k]=0
+    #if k>N//4:
+    #   ubg[k]=0
 
 for k in range (1,(2*N),2): 
     lbx[k]=-math.pi
     ubx[k]=math.pi
     lbg[k]=-100
     ubg[k] = 100
-    if k>N//4:
-        ubg[k]=0
+    #if k>N//4:
+    #   ubg[k]=0
 
 lbg[2*N] = -100000
 lbg[2*N+1] = -100000
@@ -259,6 +261,7 @@ def mpcCallback(trajectory_to_follow, curr_pos, angle_heading, curve, curve_l, c
     y_bot = 0
     ####### Special regions ############
     if curr_pos[1]<-1174 and curr_pos[1]>-1452 and curr_pos[0]<-170:
+        print("Special region")
         x_bot = 12
     yaw_car = 0 # yaw in radians
     current_pose=[x_bot,y_bot,yaw_car]
@@ -502,18 +505,18 @@ with rti.open_connector(
         for sample in input_radar_left.samples.valid_data_iter:
             data = sample.get_dictionary()
             for k in range(len(data['targetsArray'])):
-                if(-data['targetsArray'][k]['posYInChosenRef']<0) :
+                if(data['targetsArray'][k]['posXInChosenRef']<0 or data['targetsArray'][k]['posXInChosenRef']>5) :
                     continue
-                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posXInChosenRef']
-                all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posYInChosenRef']
-                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedX']
-                all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posYInChosenRef']
+                all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles +=1
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", -data['targetsArray'][k]['posXInChosenRef'])
-                print("Y : ", -data['targetsArray'][k]['posYInChosenRef'])
-                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedX'])
-                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedY'])
+                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
+                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
+                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
+                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
             break
         
         print("From right radar")
@@ -522,18 +525,18 @@ with rti.open_connector(
         for sample in input_radar_right.samples.valid_data_iter:
             data = sample.get_dictionary()
             for k in range(len(data['targetsArray'])):
-                if (data['targetsArray'][k]['posXInChosenRef']>0) :
+                if (data['targetsArray'][k]['posXInChosenRef']<0 or data['targetsArray'][k]['posXInChosenRef']>5) :
                     continue
-                all_vehicles[no_of_vehicles,0] = -data['targetsArray'][k]['posYInChosenRef']
-                all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
-                all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
-                all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
+                all_vehicles[no_of_vehicles,0] = data['targetsArray'][k]['posYInChosenRef']
+                all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedY']
+                all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles += 1
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
-                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
-                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
-                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
+                print("X : ", data['targetsArray'][k]['posYInChosenRef'])
+                print("Y : ", -data['targetsArray'][k]['posXInChosenRef'])
+                print("Speed X : ", data['targetsArray'][k]['absoluteSpeedY'])
+                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedX'])
             break
         input_speed.wait() # Wait for data in the input
         input_speed.take()

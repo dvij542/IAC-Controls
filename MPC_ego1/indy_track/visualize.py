@@ -9,21 +9,21 @@ import numpy as np
 
 TRACK_NAME = 'exp1'
 SAVE_RESULTS = True
-no_of_trajs = 1
+no_of_trajs = 0
 line_width = 1
 till = 450
 #####################################################################
 # plot best trajectory
 filepath = 'laptraj-{}.png'.format(TRACK_NAME)
 
-coordinates_center = np.loadtxt('coordinates_c.txt', delimiter=',')
-coordinates_left = np.loadtxt('coordinates_l.txt', delimiter=',')
-coordinates_right = np.loadtxt('coordinates_r.txt', delimiter=',')
+coordinates_center = np.loadtxt('coordinates_c.txt', delimiter=',')[:,:-2]
+coordinates_left = np.loadtxt('coordinates_l.txt', delimiter=',')[:,:-1]
+coordinates_right = np.loadtxt('coordinates_r.txt', delimiter=',')[:,:-1]
 
 fig = plt.figure()
 ax = plt.gca()
 ax.axis('equal')
-plt.plot(coordinates_center[0], coordinates_center[1], '--k', lw=0.5, alpha=0.5)
+plt.plot(coordinates_center[0], coordinates_center[1], 'k', lw=0.5, alpha=0.5)
 plt.plot(coordinates_left[0], coordinates_left[1], 'k', lw=0.5, alpha=0.5)
 plt.plot(coordinates_right[0], coordinates_right[1], 'k', lw=0.5, alpha=0.5)
 colors = [mcolors.to_rgba(c)

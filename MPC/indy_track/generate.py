@@ -12,7 +12,7 @@ def dist(x1,y1,x2,y2):
 
 TRACK_NAME = 'exp1'
 SAVE_RESULTS = True
-optimal_racing_line = np.loadtxt('coordinates_nc3.txt', delimiter=',')[:,:-5].T*100.0
+optimal_racing_line = np.loadtxt('test.txt', delimiter=',')[:,:-35].T
 center_line = np.loadtxt('coordinates_c.txt', delimiter=',').T*100.0
 #####################################################################
 # plot best trajectory
