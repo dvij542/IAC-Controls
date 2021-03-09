@@ -43,6 +43,11 @@ predicted_v = 0
 
 ##########   Hyperparameters     #################
 
+def car_speed_to_gear_speed(gear_change_speeds, curr_speed) :
+
+def calc_fx_from_gear_speed(gear_speed,torque_matrix) :
+
+
 vehicle_length_r = 2
 blocking_maneuver_cost = 0
 start_throttle = 1 # Throttle to give at start
