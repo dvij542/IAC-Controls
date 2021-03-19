@@ -62,7 +62,7 @@ ax_max_s = []
 for speed in range(0,83) :
 	fz = fz0 + (1/2)*1.225*(clf+clr)*speed**2
 	dfz = (fz-fz0)/fz0
-	slips = np.arange(-1,1,0.001)
+	slips = np.arange(0,0.5,0.001)
 	shx = phx1 + phx2*dfz
 	kx = slips + shx
 	Cx = pcx1
@@ -73,9 +73,10 @@ for speed in range(0,83) :
 	Bx=K/(Cx*Dx+epsilon)
 	svx = fz*(pvx1+pvx2*dfz)
 	Fx = Dx*np.sin(Cx*np.arctan(Bx*kx - Ex*(Bx*kx-np.arctan(Bx*kx)))) + svx
-	ax_max = max(Fx)/720
-	ax_max_s.append(ax_max) 
+	ax_max = np.argmax(Fx)
+	ax_max_s.append(0+0.001*ax_max) 
 plt.plot(speeds,ax_max_s)
+plt.show()
 outp = np.array([speeds,np.array(ax_max_s)]).T
 np.savetxt('gg_part_x.csv',outp,delimiter=',')
 
