@@ -57,7 +57,8 @@ path_dict = {'globtraj_input_path': toppath + "/inputs/traj_ltpl_cl/traj_ltpl_cl
              'log_path': toppath + "/logs/graph_ltpl/",
              'graph_log_id': datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
              }
-
+# ax_max_machines = np.genfromtxt( toppath + "/inputs/veh_dyn_info/ax_max_machines.csv",delimiter=',',skiprows=1)
+ax_max_machines = np.loadtxt(toppath + "/inputs/veh_dyn_info/ax_max_machines.csv", delimiter = ",")
 # ----------------------------------------------------------------------------------------------------------------------
 # INITIALIZATION AND OFFLINE PART --------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
@@ -68,7 +69,7 @@ ltpl_obj = graph_ltpl.Graph_LTPL.Graph_LTPL(path_dict=path_dict,
                                             log_to_file=True)
 
 # calculate offline graph
-ltpl_obj.graph_init(1.0,0.43,720)
+ltpl_obj.graph_init(veh_param_dyn_model_exp=1.0,veh_param_dragcoeff=0.43,veh_param_mass=720)
 
 # set start pose based on first point in provided reference-line
 refline = graph_ltpl.imp_global_traj.src.\
@@ -121,8 +122,8 @@ with rti.open_connector(
         # pos_est = [odom_data['cdgPos_x'],odom_data['cdgPos_y']]
         # print("truee")
         # print(pos_est)
-        pos_est = [-298.69 , -1811.99]
-        vel_est = 10
+        pos_est = [-305.99 , -1869.00]
+        vel_est = 27.78
         pos_est = np.asarray(pos_est)
         # print("XXXXX" + str(odom_data['cdgPos_heading']))
         # print("ggg")
@@ -294,7 +295,10 @@ with rti.open_connector(
 
             # -- CALCULATE VELOCITY PROFILE AND RETRIEVE TRAJECTORIES ----------------------------------------------------------
             traj_set = ltpl_obj.calc_vel_profile(pos_est=pos_est,
-                                                vel_est=vel_est,vel_max=86.95)[0]
+                                                vel_est=vel_est,
+                                                vel_max=83,
+                                                ax_max_machines=ax_max_machines,
+                                                local_gg=(7.0,7.0))[0]
             print("XXXXXXX Path + Velocity")
             # for sel_action in ["right","straight","left","follow" ]:
 
@@ -313,6 +317,6 @@ with rti.open_connector(
             print("message written")
             # en = time.time()
             print(time.time())
-            ltpl_obj.log()
+            # ltpl_obj.log()
             # -- LIVE PLOT (if activated) --------------------------------------------------------------------------------------
             # ltpl_obj.visual()
