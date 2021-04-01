@@ -1,0 +1,86 @@
+import states
+from casadi import *
+import params as p
+
+def sigmoid(x) :
+    return SX.exp(x)/(SX.exp(x)+1)
+
+def calc_force_from_slip(slip,speed) :
+    fz = p.fz0 + p.lift_coeff*speed**2
+    dfz = (fz-p.fz0)/p.fz0
+    shx = phx1 + phx2*dfz
+    kx = slip + shx
+    Cx = pcx1
+    mux = pdx1 + pdx2*dfz
+    Dx = mux*fz
+    Ex = (pex1 + pex2*dfz + pex3*dfz**2)*(1-pex4)
+    K = (fz+dfz*fz)*(pkx1+pkx2*dfz)*np.exp(pkx3*dfz)
+    Bx=K/(Cx*Dx+epsilon)
+    svx = fz*(pvx1+pvx2*dfz)
+    Fx = Dx*np.sin(Cx*np.arctan(Bx*kx - Ex*(Bx*kx-np.arctan(Bx*kx)))) + svx
+    return Fx
+    
+def get_gear_radii(curr_speed):
+    gear_radii = 0
+    for i in range(len(p.gear_change_speeds)-1):
+        gear_radii = gear_radii + (curr_speed>=p.gear_change_speeds[i])*(curr_speed<p.gear_change_speeds[i+1])*p.gear_radiis[i]
+    return gear_radii
+
+def car_speed_to_gear_speed(curr_speed):
+    gear_speed = 0
+    for i in range(len(p.gear_change_speeds)-1):
+        gear_speed = gear_speed + (curr_speed>=p.gear_change_speeds[i])*(curr_speed<p.gear_change_speeds[i+1])*(p.gear_speed_l[i] + (p.gear_speed_r[i]-p.gear_speed_l[i])*(curr_speed-p.gear_change_speeds[i])/(p.gear_change_speeds[i+1]-p.gear_change_speeds[i]))
+    return gear_speed*(60/6.28)
+
+def calc_torque_from_gear_speed(gear_speed,curr_c):
+    col_1 = [0,500,1500,2500,6300,6600,6900,7200,7500,7800,8100,
+        8400,8700,9000,9300,9600,9800]
+
+    row_1 = [0,10,20,30,40,50,60,70,80,90,100]
+
+    eng_data = [[0,1.9,1.9,3.8,5.7,9.5,17.1,22.8,24.7,38,43.7],
+                [0,1.9,1.9,3.8,5.7,9.5,17.1,22.8,24.7,38,43.7],
+                [0,1.9,3.8,5.7,7.6,13.3,20.9,26.6,30.4,41.8,47.5],
+                [-5.7,0,1.9,5.7,7.6,15.2,24.7,30.4,34.2,45.6,49.97],
+                [-7.6,0,1.9,7.6,9.5,19,26.6,32.3,36.1,47.5,51.3],
+                [-9.5,1.9,3.8,9.5,11.4,20.9,28.5,34.2,38,47.5,51.3],
+                [-11.4,3.8,7.6,13.3,15.2,22.8,30.4,36.1,39.9,49.4,51.11],
+                [-13.3,1.9,11.4,17.1,19,26.6,34.2,38,43.7,51.3,52.25],
+    
+                [-17.1,1.9,11.4,17.1,19,26.6,34.2,38,43.7,51.3,52.25],            [-15.2,3.8,15.2,19,20.9,28.5,36.1,39.9,44.65,52.25,53.01],
+                [-19,0,7.6,13.3,15.2,22.8,30.4,36.1,39.9,48.45,51.3],
+                [-22.8,-3.8,3.8,9.5,11.4,19,28.5,32.3,38,47.5,50.16],
+                [-24.7,-5.7,1.9,7.6,9.5,15.2,24.7,28.5,34.2,45.6,49.02],
+                [-24.7,-6.65,0,5.7,5.7,13.3,22.8,26.6,32.3,43.7,47.31],
+                [-26.6,-7.6,-1.9,1.9,3.8,11.4,20.9,24.7,30.4,41.8,44.65],
+                [-27.55,-9.5,-2.85,0,1.9,9.5,19,22.8,28.5,39.9,42.56],
+                [-28.5,-10.45,-3.8,-1.9,0,7.6,17.1,20.9,26.6,37.05,40.66]]
+
+    if(gear_speed==9800):
+        gear_speed = 9800-0.01
+    if(curr_c ==100):
+        curr_c =100-0.01
+
+    torque_val = 0
+    for indx1 in range(1,len(row_1)):    
+        for indx2 in range(1,len(col_1)):    
+            x1 = row_1[indx1-1]
+            x2 = row_1[indx1]
+            y1 = col_1[indx2-1]
+            y2 = col_1[indx2]
+            q11 = eng_data[indx2-1][indx1-1]
+            q12 = eng_data[indx2-1][indx1]
+            q21 = eng_data[indx2][indx1-1]
+            q22 = eng_data[indx2][indx1]
+            x = curr_c
+            y = gear_speed
+            torque_val = torque_val+(x>=x1)*(x<x2)*(y>=y1)*(y<y2) * \
+                    (q11 * (x2 - x) * (y2 - y) + \
+                    q21 * (x - x1) * (y2 - y) + \
+                    q12 * (x2 - x) * (y - y1) + \
+                    q22 * (x - x1) * (y - y1) \
+                   ) / ((x2 - x1) * (y2 - y1) + 0.0)
+    return torque_val
+
+def dist1(x1,y1,x2,y2):
+    return ((x1-x2)**2 + (y1-y2)**2)**(1/2)
