@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # Consts
 pcx1 = 2
-pdx1=1.7168
+pdx1= 0.7
 pdx2=-0.289
 pdx3=0
 pex1 = 0.6975
