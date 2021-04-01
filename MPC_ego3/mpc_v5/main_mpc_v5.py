@@ -10,10 +10,11 @@ print("Started")
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
+print("Started1")
 import util_funcs as utils
 import params as pars
 import cost_func as cf
-print("Started1")
+print("Started2")
 global x_bot
 global y_bot
 global control_count
