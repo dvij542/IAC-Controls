@@ -256,8 +256,8 @@ This code contains trade secrets of Real-Time Innovations, Inc.
             <topic name="radarSensorMovableTargets_Port_ego3" register_type_ref="IndyDS::SensorMovableTargets"/>
             <topic name="radarSensorMovableTargets_Stbd_ego3" register_type_ref="IndyDS::SensorMovableTargets"/>
           <topic name="controls_ego3" register_type_ref="controlsArray"/>
-          <topic name="dds_done_reply3" register_type_ref="DDS::Octets_"/>
-        <topic name="dds_done3" register_type_ref="DDS::Octets_"/>
+          <topic name="ego_done3" register_type_ref="DDS::Octets_"/>
+        <topic name="sim_done3" register_type_ref="DDS::Octets_"/>
     
         </domain>
     </domain_library>
@@ -304,10 +304,10 @@ This code contains trade secrets of Real-Time Innovations, Inc.
         </domain_participant>
       <domain_participant name="ObstacleParticipant" domain_ref="MyDomainLibrary::MyDomain">
         <publisher name="simDonePub">
-            <data_writer name="simDoneWriter" topic_ref="dds_done_reply3" />
+            <data_writer name="simDoneWriter" topic_ref="ego_done3" />
         </publisher>
         <subscriber name="simWaitSub">
-            <data_reader name="simWaitReader" topic_ref="dds_done3" />
+            <data_reader name="simWaitReader" topic_ref="sim_done3" />
         </subscriber>
         <subscriber name="roadSubscriber">
           <data_reader name="roadReader1" topic_ref="cameraRoadLinesPolynoms_F1_ego3" />
