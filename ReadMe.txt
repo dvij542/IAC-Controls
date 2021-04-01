@@ -34,12 +34,9 @@ List of subscribed topics by VRX DDS:
 3. ego_done3
 
 Instruction to start the controller :-
-1. Change current directory to ~/IAC-Controls/MPC_ego3/mpc_v5
+1. Install dependencies from requirements.txt
+'pip3 install -r requirements.txt'
+2. Change current directory to ~/IAC-Controls/MPC_ego3/mpc_v5
 'cd ~/IAC-Controls/MPC_ego3/mpc_v5'
-2. Run the python file main_mpc_v5.py
+3. Run the python file main_mpc_v5.py
 'python3 main_mpc_v5.py'
-
-Required dependencies are :-
-python3
-rticonnextdds_connector
-casadi
