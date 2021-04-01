@@ -1,0 +1,2 @@
+casadi==3.5.5
+rticonnextdds-connector==1.0.0
