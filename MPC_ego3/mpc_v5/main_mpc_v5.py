@@ -6,13 +6,14 @@ import math
 import numpy as np
 import time
 import rticonnextdds_connector as rti
+print("Started")
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 import util_funcs as utils
 import params as pars
 import cost_func as cf
-
+print("Started1")
 global x_bot
 global y_bot
 global control_count
