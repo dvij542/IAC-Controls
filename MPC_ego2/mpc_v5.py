@@ -43,22 +43,20 @@ predicted_v = 0
 
 ##########   Hyperparameters     #################
 
-manual_gear_change = False
-gear_change_engine_thres = 900 # Threshold on engine speed to change gear
+road_coeff = 0.8
+vehicle_length_r = 2
+blocking_maneuver_cost = 0
 start_throttle = 1 # Throttle to give at start
 start_speed = 10 # Speed in m/s to give start_throttle
-
-road_coeff = 0.7
-vehicle_length_r = 2 # Vehicle distance to perform blocking maneuver 
-blocking_maneuver_cost = 0
+gear_throttles = [2770,3320,3390,3660,3660,3800]
 air_resistance_const = 0.43
 mass = 720 # in Kg
-tolerance = 1 # Tolerance distance to keep from left and right lane boundaries
-Q_ang = 10 # Cost on angle difference from racing line
-k_lat_slip = 0.1 # Cost on lateral slip
-k_vel_follow = 0 # To follow the speed given by the racing line if current speed is greater than required speed
-save_path_after = 1000 # Save path after these no of iterations for visualization, -1 if path is not to be saved
-file_path_follow = "./glob_racing_line.txt"  # File to read the global reference line, if None then centre line will be taken
+tolerance = 1
+Q_ang = 10
+k_lat_slip = 0.1
+k_val_follow = 1
+save_path_after = -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+file_path_follow = "./coordinates_c.txt"  # File to read the global reference line, if None then centre line will be taken
 file_new_path = "./test.txt" # File in which the new coordinates will be saved
 Q_along=2  # Weight for progress along the road
 Q_dist=0  # Weight for distance for the center of the road
@@ -72,7 +70,7 @@ R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
 T = .04 # Time horizon
 N = 20 # Number of control intervals
 kp=1 # For PID controller
-obs_dist = 100 # To maintain from other vehicles at each time step
+obs_dist = 10 # To maintain from other vehicles at each time step
 ki=0
 kd=0
 threshold = 20000
@@ -92,19 +90,17 @@ fz0 = 7056
 ##########   Global variables    #################
 
 control_sample = np.zeros((2,N))
-no_of_vehicles = 0
 
 ################## Utils #########################
 
 def sigmoid(x) :
     return SX.exp(x)/(SX.exp(x)+1)
 
-gear_throttles = [7400,7400,5830,5150,4500,4400]
-gear_change_speeds = [18.2,28.4,38.5,47,55.5,85]
+gear_throttles = [7400,7400,7400,5830,5150,4500,4400]
+gear_change_speed = [0,18.2,28.4,38.5,47,55.5,85]
 gear_radiis = [0.05,0.056,0.0724,0.082,0.093,0.095]
 gear_speed_l = [0,705,655,608,637,688]
 gear_speed_r = [900,850,734,734,734,1000]
-
 
 def calc_force_from_slip(slip,speed) :
     fz = fz0 + lift_coeff*speed**2
@@ -175,11 +171,11 @@ def calc_torque_from_gear_speed(gear_speed,curr_c):
             q22 = eng_data[indx2][indx1]
             x = curr_c
             y = gear_speed
-            torque_val = torque_val+(x>=x1)*(x<x2)*(y>=y1)*(y<y2) * \
-                    (q11 * (x2 - x) * (y2 - y) + \
-                    q21 * (x - x1) * (y2 - y) + \
-                    q12 * (x2 - x) * (y - y1) + \
-                    q22 * (x - x1) * (y - y1) \
+            torque_val = torque_val+(x>=x1)*(x<x2)*(y>=y1)*(y<y2)*
+                    (q11 * (x2 - x) * (y2 - y) +
+                    q21 * (x - x1) * (y2 - y) +
+                    q12 * (x2 - x) * (y - y1) +
+                    q22 * (x - x1) * (y - y1)
                    ) / ((x2 - x1) * (y2 - y1) + 0.0)
     return torque_val
 ###########  Dynamic Model    ##################
@@ -188,7 +184,7 @@ rhs=[
         (v)*cos(theta+((atan(tan(delta/9.9)))/2)),
         (v)*sin(theta+((atan(tan(delta/9.9)))/2)),
         (v)*sin(atan(tan(delta/9.9)))/L,
-        ((c>0)*((v>=0)*(v<gear_change_speeds[0])*c*gear_throttles[0]+(v>=gear_change_speeds[0])*(v<gear_change_speeds[1])*c*gear_throttles[1]+(v>=gear_change_speeds[1])*(v<gear_change_speeds[2])*c*gear_throttles[2]+(v>=gear_change_speeds[2])*(v<gear_change_speeds[3])*c*gear_throttles[3]+(v>=gear_change_speeds[3])*(v<gear_change_speeds[4])*c*gear_throttles[4]+(v>=gear_change_speeds[4])*c*gear_throttles[5])-air_resistance_const*v*v+(c<0)*c)/mass
+        ((v>=0)*(v<gear_change_speeds[0])*c*gear_throttles[0]+(v>=gear_change_speeds[0])*(v<gear_change_speeds[1])*c*gear_throttles[1]+(v>=gear_change_speeds[1])*(v<gear_change_speeds[2])*c*gear_throttles[2]+(v>=gear_change_speeds[2])*(v<gear_change_speeds[3])*c*gear_throttles[3]+(v>=gear_change_speeds[3])*(v<gear_change_speeds[4])*c*gear_throttles[4]+(v>=gear_change_speeds[4])*c*gear_throttles[5]-air_resistance_const*v*v+(c<0)*c)/mass
         # (c>=0)*calc_torque_from_gear_speed(car_speed_to_gear_speed(v),c)/(mass*get_gear_radii(v)) + (c<0)*c
     ]
 rhs=vertcat(*rhs)
@@ -199,7 +195,7 @@ U=SX.sym('U',n_controls,N)
 P=SX.sym('P',9+4*max_no_of_vehicles+8)
 X=SX.sym('X',n_states,(N+1))
 g=SX.sym('g',2,N+2)
-X[:-1,0]=0
+X[:-1,0]=P[0:n_states-1]
 X[-1,0]=P[7]         
 itr = SX.sym('I',no_iters,N)
 itr_l = SX.sym('Il',no_iters,N)
@@ -234,7 +230,7 @@ obj=64000
 
 ################# P ###########
 # Initial posx,posy and heading angle are 0
-# 0 : No of vehicles
+# 0 : Dummy
 # 1,2,3,4,5,6 : Vi, Vf, C0, C1, C2 and C3 for cubic equation of reference line
 # 7,8 : Intial speed and steering angle
 # (9,10,11,12), (13,14,15,16) ...... (9+4k,10+4k,11+4k,12+4k) : (x,y,velx,vely) for all the surrounding vehicles
@@ -279,7 +275,7 @@ for k in range(0,N,1):
     F_val_r[0,k] = P[-4]+P[-3]*itr_r[no_iters-1,k]+P[-2]*itr_r[no_iters-1,k]**2 + P[-1]*itr_r[no_iters-1,k]**3
     distance_r =  ((st[0]-itr_r[no_iters-1,k])**2 + (st[1]-F_val_r[0,k])**2)**(1/2)*(2*(st[1]<F_val_r[0,k])-1)
     
-    R[0,0] = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))/(((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]) + ((st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))>0)*(st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))/(1+F_dash[0,k]**2)**(0.5))
+    R[0,0] = (((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]))/(((1+F_dash[0,k]**2)**(3/2))/(2*P[5]+6*P[6]*itr[no_iters-1,k]) - (st[1]-F_val[0,k]-F_dash[0,k]*(st[0]-itr[no_iters-1,k]))/(1+F_dash[0,k]**2)**(0.5))
     g[0,k] =  0#distance_l
     g[1,k] =  0#distance_r
     pen[0,k] = distance_l + tolerance
@@ -309,8 +305,8 @@ for k in range(0,N,1):
         other_vehicle_v[t,k+1] = other_vehicle_v[t,k]
     obj = obj + Q_ang*(atan(F_dash[0,k])-st[2])**2
     obj = obj - (1-sigmoid(10*(lateral_acc_req-lateral_acc_max)))*Q_along*st[3]*cos(atan(F_dash[0,k])-st[2])*R[0,0] # To move along the lane 
-    required_val = Vi + (k+1)*(Vf-Vi)/N
-    obj = obj + (st[3]>required_val)*k_vel_follow*(required_val-st[3])**2 # Cost for speed difference from optimal racing line speeed
+    required_val = Vi + (i+1)*(Vf-Vi)/N
+    obj = obj + sigmoid(10*(st[3]-required_val))*k_vel_follow*(required_val-st[3])**2 # Cost for speed difference from optimal racing line speeed
     obj = obj + Q_dist*(P[3]+P[4]*st[0]+P[5]*st[0]*st[0]+P[6]*st[0]*st[0]*st[0]-st[1])**2 # Distance from the center lane
     obj = obj + con.T@R1@con # Penalise for more steering angle
 
@@ -376,7 +372,7 @@ ubg[2*N+3] = 100000
 def dist1(x1,y1,x2,y2):
     return ((x1-x2)**2 + (y1-y2)**2)**(1/2)
 
-def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth):
+def mpcCallback(trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth):
     x_bot = 0
     y_bot = 0
     ####### Special regions ############
@@ -695,13 +691,6 @@ with rti.open_connector(
             curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
-            print("Current gear :",curr_gear)
-            print("Current engine speed :",curr_engine_speed)
-            if curr_engine_speed > gear_change_engine_thres :
-                required_gear = curr_gear + 1
-            else :
-                required_gear = curr_gear
-            print("Current gear :",curr_gear+1)
             traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3],throttle,curr_engine_speed,curr_gear])
             print("Current Speed : ", curr_speed)
             
@@ -731,7 +720,6 @@ with rti.open_connector(
                 ll2 = data2['roadLinesPolynomsArray'][0]
                 lr2 = data2['roadLinesPolynomsArray'][1]
             else :
-                print("Changed")
                 ll1 = dict()
                 ll1['c0'] = 7
                 ll1['c1'] = 0
@@ -748,7 +736,7 @@ with rti.open_connector(
                 lr1['c2'] = 0
                 lr1['c3'] = 0
                 lr2 = dict()
-                lr2['c0'] = -7
+                lr2['c0'] = 7
                 lr2['c1'] = 0
                 lr2['c2'] = 0
                 lr2['c3'] = 0
@@ -782,7 +770,7 @@ with rti.open_connector(
             print("Curve left : ", curve_l)
             print("Curve right : ", curve_r)
             print("Curve : ", curve)
-            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
+            curr_steering_array, target_speed_array = (mpcCallback(trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
             out = {}
@@ -808,11 +796,7 @@ with rti.open_connector(
             out['BrakeMultiplicative'] = 0
             out['ClutchAdditive'] = 0
             out['ClutchMultiplicative'] = 0
-            out['GearboxAutoMode'] = 9
-            
-            if manual_gear_change :
-                out['GearboxAutoMode'] = 0
-            
+            out['GearboxAutoMode'] = 10
             out['GearboxTakeOver'] = 1
             out['IsRatioLimit'] = 0
             out['MaxRatio'] = 1000
