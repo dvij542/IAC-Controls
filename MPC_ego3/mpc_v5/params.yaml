@@ -4,6 +4,7 @@ parameters:
   start_throttle: 1 # Throttle to give at start
   start_speed: 10 # Speed in m/s to give start_throttle
 
+  vmax: 300
   road_coeff: 0.7
   vehicle_length_r: 2 # Vehicle distance to perform blocking maneuver 
   blocking_maneuver_cost: 0
@@ -44,6 +45,20 @@ parameters:
 
   epsilon: 0
   L: 2.9
+
+  # Drafting params:
+  DCd0: 0.805
+  DCdx: 0.003
+  Dcdy: 0.0825
+
+  Dclf0: 0.69
+  Dclfx: 0.004
+  Dclfy: 0.11
+
+  Dclr0: 0.69
+  Dclrx: 0.004
+  Dclry: 0.135
+
 
 Gear Params:
   gear_throttles: [7400,7400,5830,5150,4500,4400]

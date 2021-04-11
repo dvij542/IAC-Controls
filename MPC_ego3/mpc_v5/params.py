@@ -49,6 +49,17 @@ fz0 = params['parameters']['fz0']
 epsilon = params['parameters']['epsilon']
 L = params['parameters']['L']
 
+DCd0 = params['DCd0']
+DCdx = params['DCdx']
+Dcdy = params['DCdxy']
+
+Dclf0 = params['Dclf0']
+Dclfx = params['Dclfx']
+Dclfy = params['Dclfy']
+
+Dclr0 = params['Dclr0']
+Dclrx = params['Dclrx']
+Dclry = params['Dclry']
 # Gear Params:
 gear_throttles = params['Gear Params']['gear_throttles']
 gear_change_speeds = params['Gear Params']['gear_change_speeds']
