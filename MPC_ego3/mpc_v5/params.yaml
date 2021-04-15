@@ -26,7 +26,7 @@ parameters:
   T: .04 # Time horizon
   N: 20 # Number of control intervals
   kp: 1 # For PID controller
-  obs_dist: 10 # To maintain from other vehicles at each time step
+  obs_dist: 20 # To maintain from other vehicles at each time step
   ki: 0
   kd: 0
   threshold: 20000
