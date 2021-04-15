@@ -4,7 +4,7 @@ parameters:
   start_throttle: 1 # Throttle to give at start
   start_speed: 10 # Speed in m/s to give start_throttle
 
-  vmax: 300
+  vmax: 83.3
   road_coeff: 0.7
   vehicle_length_r: 2 # Vehicle distance to perform blocking maneuver 
   blocking_maneuver_cost: 0
@@ -26,11 +26,11 @@ parameters:
   T: .04 # Time horizon
   N: 20 # Number of control intervals
   kp: 1 # For PID controller
-  obs_dist: 100 # To maintain from other vehicles at each time step
+  obs_dist: 10 # To maintain from other vehicles at each time step
   ki: 0
   kd: 0
   threshold: 20000
-  dist_threshold: 1000
+  dist_threshold: 0
   kp_start: 2
   ki_start: 0.05
   kd_start: 1.5
@@ -46,7 +46,7 @@ parameters:
   epsilon: 0
   L: 2.9
 
-  # Drafting params:
+  
   DCd0: 0.805
   DCdx: 0.003
   Dcdy: 0.0825

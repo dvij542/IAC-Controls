@@ -287,6 +287,13 @@ with rti.open_connector(
                 print("Y : ", data['targetsArray'][k]['posYInChosenRef'])
                 print("Speed X : ", data['targetsArray'][k]['absoluteSpeedX'])
                 print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedY'])
+                print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
+                print("type :", data['targetsArray'][k]['type_'])
+                #print("name :", data['targetsArray'][k]['name'])
+                print("beamIndex :", data['targetsArray'][k]['beamIndex'])
+                print("existenceTime :", data['targetsArray'][k]['existenceTime'])
+                print("anchorPoint :", data['targetsArray'][k]['anchorPoint'])
+                print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
             break
         input_radar_left.wait()
         input_radar_left.take()

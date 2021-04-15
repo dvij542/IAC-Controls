@@ -7,25 +7,26 @@ y=SX.sym('y')
 theta=SX.sym('theta')
 v=SX.sym('v')
 a=SX.sym('a')
+xopp = SX.sym('xopp')
+yopp = SX.sym('yopp')
 states=vertcat(x,y,theta,v)
 c=SX.sym('c')
 delta=SX.sym('delta')
 controls=vertcat(c,delta)
 targ=vertcat(xopp,yopp)
-rhs=vertcat(*rhs)
-f=Function('f',[states,controls,targ],[rhs])
 n_states=4
 n_controls=2
 U=SX.sym('U',n_controls,pars.N)
 P=SX.sym('P',9+4*pars.max_no_of_vehicles+8)
 X=SX.sym('X',n_states,(pars.N+1))
+opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
 
 def calc_drafting_coeff_drag(x,y,xopp,yopp):
     dx = xopp-x 
     dy = yopp-y
     val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*SX.fabs(dy)
-    return (dx>0)*SX.fmax(val,1) + (dx<=0)*1
+    return 1#(dx>0)*SX.fmax(val,1) + (dx<=0)*1
 
 def calc_force(c,v,x,y,xopp,yopp):
     wind_force = pars.air_resistance_const*v*v*(1 + (calc_drafting_coeff_drag(x,y,xopp,yopp)-1)*(v/pars.vmax))
@@ -49,6 +50,9 @@ rhs=[
         calc_force(c,v,x,y,xopp,yopp)/pars.mass
         # (c>=0)*calc_torque_from_gear_speed(car_speed_to_gear_speed(v),c)/(mass*get_gear_radii(v)) + (c<0)*c
     ]
+rhs=vertcat(*rhs)
+f=Function('f',[states,controls,targ],[rhs])
+
 X[:-1,0]=0
 X[-1,0]=P[7]         
 itr = SX.sym('I',pars.no_iters,pars.N)
@@ -70,7 +74,9 @@ R = SX.sym('R',1,1)
 for k in range(0,pars.N,1):
     st=X[:,k]
     con=U[:,k]
-    target = [P[9]+P[11]*k*pars.T,P[10]+P[12]*k*pars.T]
+    opp[0,k] = P[9]+P[11]*k*pars.T
+    opp[1,k] = P[10]+P[12]*k*pars.T
+    target = opp[:,k]#[P[9]+P[11]*k*pars.T,P[10]+P[12]*k*pars.T]
     f_value=f(st,con,target)
     st_next=st+(pars.T*f_value)
     X[:,k+1]=st_next
