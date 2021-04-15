@@ -45,7 +45,7 @@ parameters:
 
   epsilon: 0
   L: 2.9
-
+  W: 2
   
   DCd0: 0.805
   DCdx: 0.003

@@ -1,6 +1,25 @@
 import states
 from casadi import *
 import params as p
+import math
+
+SC_REAR_RIGHT_EDGE = 0
+SC_REAR_LEFT_EDGE = 1
+SC_FRONT_RIGHT_EDGE = 2
+SC_FRONT_LEFT_EDGE = 3
+SC_REAR_FACE_CENTER = 4
+SC_FRONT_FACE_CENTER = 5
+SC_RIGHT_FACE_CENTER = 6
+SC_LEFT_FACE_CENTER = 7
+SC_UNUSED = 8
+SC_UNKNOWN_FRONT_FACE_RIGHT = 9
+SC_UNKNOWN_FRONT_FACE_LEFT = 10
+SC_UNKNOWN_REAR_FACE_RIGHT = 11
+SC_UNKNOWN_REAR_FACE_LEFT = 12
+SC_UNKNOWN_RIGHT_FACE_FRONT = 13
+SC_UNKNOWN_LEFT_FACE_FRONT = 14
+SC_UNKNOWN_RIGHT_FACE_REAR = 15
+SC_UNKNOWN_LEFT_FACE_REAR = 16
 
 def sigmoid(x) :
     return SX.exp(x)/(SX.exp(x)+1)
@@ -84,3 +103,59 @@ def calc_torque_from_gear_speed(gear_speed,curr_c):
 
 def dist1(x1,y1,x2,y2):
     return ((x1-x2)**2 + (y1-y2)**2)**(1/2)
+
+def anchorPointToCenter(x,y,t,no) :
+    xd = 0
+    yd = 0
+    if(no==SC_REAR_RIGHT_EDGE) :
+        xd = p.L/2
+        yd = p.W/2
+    if(no==SC_REAR_LEFT_EDGE) :
+        xd = p.L/2
+        yd = -p.W/2
+    if(no==SC_FRONT_RIGHT_EDGE) :
+        xd = -p.L/2
+        yd = p.W/2
+    if(no==SC_FRONT_LEFT_EDGE) :
+        xd = -p.L/2
+        yd = -p.W/2
+    if(no==SC_REAR_FACE_CENTER) :
+        xd = p.L/2
+        yd = 0
+    if(no==SC_FRONT_FACE_CENTER) :
+        xd = -p.L/2
+        yd = 0
+    if(no==SC_RIGHT_FACE_CENTER) :
+        xd = 0
+        yd = p.W/2
+    if(no==SC_LEFT_FACE_CENTER) :
+        xd = 0
+        yd = -p.W/2
+    if(no==SC_UNKNOWN_FRONT_FACE_RIGHT) :
+        xd = -p.L/2
+        yd = p.W/4
+    if(no==SC_UNKNOWN_FRONT_FACE_LEFT) :
+        xd = -p.L/2
+        yd = -p.W/4
+    if(no==SC_UNKNOWN_REAR_FACE_RIGHT) :
+        xd = p.L/2
+        yd = p.W/4
+    if(no==SC_UNKNOWN_REAR_FACE_LEFT) :
+        xd = p.L/2
+        yd = -p.W/4
+    if(no==SC_UNKNOWN_RIGHT_FACE_FRONT) :
+        xd = -p.L/4
+        yd = p.W/2
+    if(no==SC_UNKNOWN_LEFT_FACE_FRONT) :
+        xd = -p.L/4
+        yd = -p.W/2
+    if(no==SC_UNKNOWN_RIGHT_FACE_REAR) :
+        xd = p.L/4
+        yd = p.W/2
+    if(no==SC_UNKNOWN_LEFT_FACE_REAR) :
+        xd = p.L/4
+        yd = -p.W/2
+    
+    xdd = xd*math.cos(t) - yd*math.sin(t)
+    ydd = xd*math.sin(t) + yd*math.cos(t)
+    return x + xdd, y + ydd

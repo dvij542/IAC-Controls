@@ -282,11 +282,17 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedX']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedY']
                 no_of_vehicles += 1
+                all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
+                    = utils.anchorPointToCenter(\
+                        all_vehicles[no_of_vehicles,0], \
+                        all_vehicles[no_of_vehicles,1], \
+                            math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
+                            data['targetsArray'][k]['anchorPoint']) 
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", data['targetsArray'][k]['posXInChosenRef'])
-                print("Y : ", data['targetsArray'][k]['posYInChosenRef'])
-                print("Speed X : ", data['targetsArray'][k]['absoluteSpeedX'])
-                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedY'])
+                print("X : ", all_vehicles[no_of_vehicles,0])
+                print("Y : ", all_vehicles[no_of_vehicles,1])
+                print("Speed X : ", all_vehicles[no_of_vehicles,2])
+                print("Speed Y : ", all_vehicles[no_of_vehicles,3])
                 print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
                 print("type :", data['targetsArray'][k]['type_'])
                 #print("name :", data['targetsArray'][k]['name'])
@@ -308,11 +314,24 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles +=1
+                all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
+                    = utils.anchorPointToCenter(\
+                        all_vehicles[no_of_vehicles,0], \
+                        all_vehicles[no_of_vehicles,1], \
+                            math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
+                            data['targetsArray'][k]['anchorPoint']) 
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", -data['targetsArray'][k]['posYInChosenRef'])
-                print("Y : ", data['targetsArray'][k]['posXInChosenRef'])
-                print("Speed X : ", -data['targetsArray'][k]['absoluteSpeedY'])
-                print("Speed Y : ", data['targetsArray'][k]['absoluteSpeedX'])
+                print("X : ", all_vehicles[no_of_vehicles,0])
+                print("Y : ", all_vehicles[no_of_vehicles,1])
+                print("Speed X : ", all_vehicles[no_of_vehicles,2])
+                print("Speed Y : ", all_vehicles[no_of_vehicles,3])
+                print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
+                print("type :", data['targetsArray'][k]['type_'])
+                #print("name :", data['targetsArray'][k]['name'])
+                print("beamIndex :", data['targetsArray'][k]['beamIndex'])
+                print("existenceTime :", data['targetsArray'][k]['existenceTime'])
+                print("anchorPoint :", data['targetsArray'][k]['anchorPoint'])
+                print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
             break
         
         print("From right radar")
@@ -328,11 +347,24 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedY']
                 all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedX']
                 no_of_vehicles += 1
+                all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
+                    = utils.anchorPointToCenter(\
+                        all_vehicles[no_of_vehicles,0], \
+                        all_vehicles[no_of_vehicles,1], \
+                            math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
+                            data['targetsArray'][k]['anchorPoint']) 
                 print("Vehicle no ", no_of_vehicles)
-                print("X : ", data['targetsArray'][k]['posYInChosenRef'])
-                print("Y : ", -data['targetsArray'][k]['posXInChosenRef'])
-                print("Speed X : ", data['targetsArray'][k]['absoluteSpeedY'])
-                print("Speed Y : ", -data['targetsArray'][k]['absoluteSpeedX'])
+                print("X : ", all_vehicles[no_of_vehicles,0])
+                print("Y : ", all_vehicles[no_of_vehicles,1])
+                print("Speed X : ", all_vehicles[no_of_vehicles,2])
+                print("Speed Y : ", all_vehicles[no_of_vehicles,3])
+                print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
+                print("type :", data['targetsArray'][k]['type_'])
+                #print("name :", data['targetsArray'][k]['name'])
+                print("beamIndex :", data['targetsArray'][k]['beamIndex'])
+                print("existenceTime :", data['targetsArray'][k]['existenceTime'])
+                print("anchorPoint :", data['targetsArray'][k]['anchorPoint'])
+                print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
             break
         input_speed.wait() # Wait for data in the input
         input_speed.take()

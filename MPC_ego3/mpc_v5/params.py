@@ -48,6 +48,7 @@ pdy2 = params['parameters']['pdy2']
 fz0 = params['parameters']['fz0']
 epsilon = params['parameters']['epsilon']
 L = params['parameters']['L']
+W = params['parameters']['W']
 
 vmax = params['parameters']['vmax']
 DCd0 = params['parameters']['DCd0']
