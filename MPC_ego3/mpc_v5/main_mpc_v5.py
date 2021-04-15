@@ -281,7 +281,6 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posYInChosenRef']
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedX']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedY']
-                no_of_vehicles += 1
                 all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
                     = utils.anchorPointToCenter(\
                         all_vehicles[no_of_vehicles,0], \
@@ -300,6 +299,7 @@ with rti.open_connector(
                 print("existenceTime :", data['targetsArray'][k]['existenceTime'])
                 print("anchorPoint :", data['targetsArray'][k]['anchorPoint'])
                 print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
+                no_of_vehicles += 1
             break
         input_radar_left.wait()
         input_radar_left.take()
@@ -313,7 +313,6 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
                 all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
-                no_of_vehicles +=1
                 all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
                     = utils.anchorPointToCenter(\
                         all_vehicles[no_of_vehicles,0], \
@@ -332,6 +331,7 @@ with rti.open_connector(
                 print("existenceTime :", data['targetsArray'][k]['existenceTime'])
                 print("anchorPoint :", data['targetsArray'][k]['anchorPoint'])
                 print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
+                no_of_vehicles +=1
             break
         
         print("From right radar")
@@ -346,7 +346,6 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posXInChosenRef']
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedY']
                 all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedX']
-                no_of_vehicles += 1
                 all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
                     = utils.anchorPointToCenter(\
                         all_vehicles[no_of_vehicles,0], \
@@ -365,6 +364,7 @@ with rti.open_connector(
                 print("existenceTime :", data['targetsArray'][k]['existenceTime'])
                 print("anchorPoint :", data['targetsArray'][k]['anchorPoint'])
                 print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
+                no_of_vehicles += 1
             break
         input_speed.wait() # Wait for data in the input
         input_speed.take()
