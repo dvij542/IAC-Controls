@@ -219,7 +219,7 @@ def detect_anomaly(vehicles, no_of_vehicles) :
 required_gear = 1
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
-        url=file_path + "/../../Sensors_ego2.xml") as connector:
+        url=file_path + "/../../Sensors_ego3.xml") as connector:
 
     input1 = connector.get_input("roadSubscriber::roadReader1")
     input2 = connector.get_input("roadSubscriber::roadReader2")
