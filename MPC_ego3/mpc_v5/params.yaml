@@ -17,7 +17,7 @@ parameters:
   save_path_after: 1000 # Save path after these no of iterations for visualization, -1 if path is not to be saved
   file_path_follow: ./glob_racing_line.txt  # File to read the global reference line, if None then centre line will be taken
   file_new_path: ./test.txt # File in which the new coordinates will be saved
-  Q_along: 2  # Weight for progress along the road
+  Q_along: 6  # Weight for progress along the road
   Q_dist: 0  # Weight for distance for the center of the road
   penalty_out_of_road: 6 # Penalise for planning path outside the road
   no_iters: 3
@@ -26,11 +26,11 @@ parameters:
   T: .04 # Time horizon
   N: 20 # Number of control intervals
   kp: 1 # For PID controller
-  obs_dist: 20 # To maintain from other vehicles at each time step
+  obs_dist: 60 # To maintain from other vehicles at each time step
   ki: 0
   kd: 0
   threshold: 20000
-  dist_threshold: 0
+  dist_threshold: 2
   kp_start: 2
   ki_start: 0.05
   kd_start: 1.5

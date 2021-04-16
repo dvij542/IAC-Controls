@@ -15,7 +15,7 @@ from casadi import *
 # (-8,-7,-6,-5) : Left lane boundary C0, C1, C2, C3
 # (-4,-3,-2,-1) : Right lane boundary C0, C1, C2, C3
 
-for t in range(2) : 
+for t in range(pars.max_no_of_vehicles) : 
     models.other_vehicle_x[t,0] = models.P[9+4*t]
     models.other_vehicle_y[t,0] = models.P[10+4*t]
     models.other_vehicle_v[t,0] = (models.P[11+4*t]**2 + models.P[12+4*t]**2+0.01)**0.5
@@ -78,7 +78,7 @@ for k in range(0,pars.N,1):
         # models.obj = models.obj + blocking_maneuver_cost*(x_v < -vehicle_length_r)*(y_v>0)*(y_v)*((((models.P[9+4*t]-models.X[0,0])**2+(models.P[10+4*t]-models.X[1,0])**2))<100)
         x_r = (models.other_vehicle_x[t,k]-st[0])*cos(models.other_vehicle_t[t,k]) + (models.other_vehicle_y[t,k]-st[1])*sin(models.other_vehicle_t[t,k])
         y_r = -(models.other_vehicle_x[t,k]-st[0])*sin(models.other_vehicle_t[t,k]) + (models.other_vehicle_y[t,k]-st[1])*cos(models.other_vehicle_t[t,k])
-        models.obj = models.obj + (models.P[9+4*t]<500)*(pars.obs_dist/((x_r/pars.L)**2+(y_r/pars.W)**2+0.05)) # To maintain safe distance from other vehicles
+        models.obj = models.obj + (pars.obs_dist/((x_r/pars.L)**2+(y_r/pars.W)**2+0.05)) # To maintain safe distance from other vehicles
         models.other_vehicle_t[t,k+1] = models.other_vehicle_t[t,k] + pars.T*(models.other_vehicle_v[t,k]/Radius)
         models.other_vehicle_x[t,k+1] = models.other_vehicle_x[t,k] + models.other_vehicle_v[t,k]*cos(models.other_vehicle_t[t,k])*pars.T
         models.other_vehicle_y[t,k+1] = models.other_vehicle_y[t,k] + models.other_vehicle_v[t,k]*sin(models.other_vehicle_t[t,k])*pars.T

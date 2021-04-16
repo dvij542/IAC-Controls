@@ -40,7 +40,7 @@ def calc_force(c,v,x,y,xopp,yopp):
 
 
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
-    [0,10]])
+    [0,1]])
 R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
     [0,0]])
 rhs=[
