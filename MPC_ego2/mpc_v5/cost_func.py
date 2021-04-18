@@ -5,6 +5,13 @@ import math
 import numpy as np
 from casadi import *
 
+def min_allowed_radius(vel):
+    dFz = pars.lift_coeff*vel**2
+    dfz = dFz/pars.fz0
+    muy = (pars.pdy1 + pars.pdy2*dfz)*pars.road_coeff
+    lateral_acc_max = muy*pars.gravity_constant*(1+dfz)
+    radius = (vel**2)/lateral_acc_max
+    return radius
 
 ################# models.P ###########
 # Initial posx,posy and heading angle are 0
@@ -79,7 +86,7 @@ for k in range(0,pars.N,1):
         x_r = (models.other_vehicle_x[t,k]-st[0])*cos(models.other_vehicle_t[t,k]) + (models.other_vehicle_y[t,k]-st[1])*sin(models.other_vehicle_t[t,k])
         y_r = -(models.other_vehicle_x[t,k]-st[0])*sin(models.other_vehicle_t[t,k]) + (models.other_vehicle_y[t,k]-st[1])*cos(models.other_vehicle_t[t,k])
         
-        models.obj = models.obj + (utils.sigmoid(5*(-y_r+2)))*(1-utils.sigmoid(-5*(y_r+2)))*(pars.obs_dist/((x_r/pars.L)**2+(y_r/pars.W)**2+0.05)) # To maintain safe distance from other vehicles
+        models.obj = models.obj + (utils.sigmoid(5*(2-x_r)))*(utils.sigmoid(5*(-y_r+2)))*(1-utils.sigmoid(-5*(y_r+2)))*(pars.obs_dist/((x_r/pars.L)**2+(y_r/pars.W)**2+0.05)) # To maintain safe distance from other vehicles
         models.other_vehicle_t[t,k+1] = models.other_vehicle_t[t,k] + pars.T*(models.other_vehicle_v[t,k]/Radius)
         models.other_vehicle_x[t,k+1] = models.other_vehicle_x[t,k] + models.other_vehicle_v[t,k]*cos(models.other_vehicle_t[t,k])*pars.T
         models.other_vehicle_y[t,k+1] = models.other_vehicle_y[t,k] + models.other_vehicle_v[t,k]*sin(models.other_vehicle_t[t,k])*pars.T
@@ -133,9 +140,14 @@ for k in range (0,2*pars.N,2):
 
 # k is the time step
 # models.X[3,k] is the speed at 
-for k in range (1,(2*pars.N),2): 
-    lbx[k]=-math.pi
-    ubx[k]=math.pi
+for k in range (1,(2*pars.N),2):
+    min_radius = min_allowed_radius(models.X[3,int(k/2)])
+    max_steering_angle = sin(pars.L/(2*min_radius)) * 9.9
+    max_steering_angle = min(math.pi,float(max_steering_angle))
+    lbx[k]=-max_steering_angle
+    ubx[k]=max_steering_angle
+    # lbx[k] = -math.pi
+    # ubx[k] = math.pi
     lbg[k]=-100
     ubg[k] = 100
     #if k>pars.N//4:

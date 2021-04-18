@@ -23,10 +23,10 @@ opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
 
 def calc_drafting_coeff_drag(x,y,xopp,yopp):
-    dx = xopp-x 
+    dx = xopp-x-pars.L/2 
     dy = yopp-y
-    val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*SX.fabs(dy)
-    return 1#(dx>0)*SX.fmax(val,1) + (dx<=0)*1
+    val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*dy*10
+    return 1
 
 def calc_force(c,v,x,y,xopp,yopp):
     wind_force = pars.air_resistance_const*v*v*(1 + (calc_drafting_coeff_drag(x,y,xopp,yopp)-1)*(v/pars.vmax))
@@ -74,6 +74,7 @@ R = SX.sym('R',1,1)
 for k in range(0,pars.N,1):
     st=X[:,k]
     con=U[:,k]
+    theta = atan2(P[12],P[11])
     opp[0,k] = P[9]+P[11]*k*pars.T
     opp[1,k] = P[10]+P[12]*k*pars.T
     target = opp[:,k]#[P[9]+P[11]*k*pars.T,P[10]+P[12]*k*pars.T]

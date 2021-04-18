@@ -2,6 +2,7 @@ import states
 from casadi import *
 import params as p
 import math
+from casadi import *
 
 SC_REAR_RIGHT_EDGE = 0
 SC_REAR_LEFT_EDGE = 1
@@ -22,7 +23,7 @@ SC_UNKNOWN_RIGHT_FACE_REAR = 15
 SC_UNKNOWN_LEFT_FACE_REAR = 16
 
 def sigmoid(x) :
-    return SX.exp(x)/(SX.exp(x)+1)
+    return if_else(x<0,SX.exp(x)/(SX.exp(x)+1),1/(SX.exp(-x)+1)) 
 
 def calc_force_from_slip(slip,speed) :
     fz = p.fz0 + p.lift_coeff*speed**2
