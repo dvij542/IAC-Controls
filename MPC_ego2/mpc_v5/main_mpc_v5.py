@@ -31,7 +31,7 @@ predicted_v = 0
 control_sample = np.zeros((2,pars.N))
 no_of_vehicles = 0
 
-def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth):
+def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth,opp_vehicle_detected,opp_vehicle_detected_state):
     x_bot = 0
     y_bot = 0
     ####### Special regions ############
@@ -91,6 +91,14 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
     if mindist < pars.dist_threshold :
         # Path from left
         vehicle = all_vehicles[minindex]
+        opp_target_id = opp_vehicle_detected[minindex]
+        print("Opp vehicle id ",str(opp_target_id))
+        if opp_vehicle_detected_state[opp_target_id] != 0:
+            prev_path = opp_vehicle_detected_state[opp_target_id] # prev_path = 1 for right, 2 for left
+            print("continuous vehicle detected with prefered path ",str(prev_path))
+        else:
+            opp_vehicle_detected_state[:]= 0
+            print("new vehicle detected ")
         xc=0
         yc=0
         theta = 0
@@ -148,9 +156,10 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
         plt.plot(linerx,linery,'ro-')
         xrt=reshape(control_sample.copy(),2*pars.N,1)
         sr=cf.solver(x0=xrt,p=p,lbx=cf.lbx,ubx=cf.ubx,lbg=cf.lbg,ubg=cf.ubg)
-
-
         costr = sr['f']
+
+        #cf for prev_path . If prev path = 1 , rightis prefereed. If prev path = 2 - left is preferred
+
         x = 0
         if curve_l[0]<3 :
             costl = costl + 10000
@@ -158,8 +167,13 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
             costr = costr + 10000
         if(costr<=costl):
             x = sr['x']
+            opp_vehicle_detected_state[opp_target_id] = 1
+            print('right path chosen')
         else :
             x = sl['x']
+            opp_vehicle_detected_state[opp_target_id] = 2
+            print('left path chosen')
+
         print("Cost from right : ", costr)
         print("Cost from left : ", costl)
         #rect = []
@@ -197,6 +211,8 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
     #print(ubg)
     print(p)
     so=cf.solver(x0=x0,p=p,lbx=cf.lbx,ubx=cf.ubx,lbg=cf.lbg,ubg=cf.ubg) 
+    opp_vehicle_detected_state[:]= 0
+    print("no vehicle detected. Reseting all opp_vehichle_detected_state to 0.")
     x=so['x']
     g=so['g']
     predicted_x = g[2*pars.N]
@@ -242,7 +258,9 @@ with rti.open_connector(
     target_throttle = 0
     aggregate = 0
     nr_dist = 0
-    all_vehicles = np.ones((pars.max_no_of_vehicles,4))*10000
+    all_vehicles = np.ones((pars.max_no_of_vehicles,6))*10000
+    opp_vehicle_detected = np.zeros((pars.max_no_of_vehicles),dtype = int)
+    opp_vehicle_detected_state = np.zeros((pars.max_no_of_vehicles),dtype = int)
     if pars.file_path_follow != None:
         trajectory_to_follow = np.loadtxt(pars.file_path_follow,delimiter = ",")[:,[0,1,-2]].T
     else :
@@ -253,6 +271,7 @@ with rti.open_connector(
     P = 0
     I = pars.I_start
     D = 0
+    hii=[]
     throttle = 0
     while True:
         total_itr=total_itr+1
@@ -266,6 +285,9 @@ with rti.open_connector(
         all_vehicles[:,:2] = 10000
         all_vehicles[:,2] = 1
         all_vehicles[:,3] = 0
+        all_vehicles[:,4:6] = 10000
+        opp_vehicle_detected[:] = 0
+
         wait_topic.wait()
         wait_topic.take()
         wait_msg = []
@@ -281,15 +303,22 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posYInChosenRef']
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedX']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedY']
+                opp_vehicle_detected[no_of_vehicles] = data['targetsArray'][k]['scanerId']
                 all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
                     = utils.anchorPointToCenter(\
                         all_vehicles[no_of_vehicles,0], \
                         all_vehicles[no_of_vehicles,1], \
                             math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
                             data['targetsArray'][k]['anchorPoint']) 
+                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] + 1.791102
+                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1]
+
                 print("Vehicle no ", no_of_vehicles)
+                print("Vehicle id : ",opp_vehicle_detected[no_of_vehicles])
                 print("X : ", all_vehicles[no_of_vehicles,0])
                 print("Y : ", all_vehicles[no_of_vehicles,1])
+                print("Ego Vehicle frame X : ", all_vehicles[no_of_vehicles,4])
+                print("Ego Vehicle frame Y : ", all_vehicles[no_of_vehicles,5])
                 print("Speed X : ", all_vehicles[no_of_vehicles,2])
                 print("Speed Y : ", all_vehicles[no_of_vehicles,3])
                 print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
@@ -313,15 +342,21 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posXInChosenRef']
                 all_vehicles[no_of_vehicles,2] = -data['targetsArray'][k]['absoluteSpeedY']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedX']
+                opp_vehicle_detected[no_of_vehicles] = data['targetsArray'][k]['scanerId']
                 all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
                     = utils.anchorPointToCenter(\
                         all_vehicles[no_of_vehicles,0], \
                         all_vehicles[no_of_vehicles,1], \
                             math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
                             data['targetsArray'][k]['anchorPoint']) 
+                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] + 2.064369
+                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1] + 0.220795
                 print("Vehicle no ", no_of_vehicles)
+                print("Vehicle id : ",opp_vehicle_detected[no_of_vehicles])
                 print("X : ", all_vehicles[no_of_vehicles,0])
                 print("Y : ", all_vehicles[no_of_vehicles,1])
+                print("Ego Vehicle frame X : ", all_vehicles[no_of_vehicles,4])
+                print("Ego Vehicle frame Y : ", all_vehicles[no_of_vehicles,5])
                 print("Speed X : ", all_vehicles[no_of_vehicles,2])
                 print("Speed Y : ", all_vehicles[no_of_vehicles,3])
                 print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
@@ -346,15 +381,21 @@ with rti.open_connector(
                 all_vehicles[no_of_vehicles,1] = -data['targetsArray'][k]['posXInChosenRef']
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedY']
                 all_vehicles[no_of_vehicles,3] = -data['targetsArray'][k]['absoluteSpeedX']
+                opp_vehicle_detected[no_of_vehicles] = data['targetsArray'][k]['scanerId']
                 all_vehicles[no_of_vehicles,0], all_vehicles[no_of_vehicles,1] \
                     = utils.anchorPointToCenter(\
                         all_vehicles[no_of_vehicles,0], \
                         all_vehicles[no_of_vehicles,1], \
                             math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
                             data['targetsArray'][k]['anchorPoint']) 
+                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] + 2.064369
+                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1] - 0.220795
                 print("Vehicle no ", no_of_vehicles)
+                print("Vehicle id : ",opp_vehicle_detected[no_of_vehicles])
                 print("X : ", all_vehicles[no_of_vehicles,0])
                 print("Y : ", all_vehicles[no_of_vehicles,1])
+                print("Ego Vehicle frame X : ", all_vehicles[no_of_vehicles,4])
+                print("Ego Vehicle frame Y : ", all_vehicles[no_of_vehicles,5])
                 print("Speed X : ", all_vehicles[no_of_vehicles,2])
                 print("Speed Y : ", all_vehicles[no_of_vehicles,3])
                 print("detectionStatus :", data['targetsArray'][k]['detectionStatus'])
@@ -366,6 +407,7 @@ with rti.open_connector(
                 print("referenceFrame :", data['targetsArray'][k]['referenceFrame'])
                 no_of_vehicles += 1
             break
+        
         input_speed.wait() # Wait for data in the input
         input_speed.take()
         px = 0
@@ -399,7 +441,16 @@ with rti.open_connector(
             print("Required gear :",required_gear)
             traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3],throttle,curr_engine_speed,curr_gear])
             print("Current Speed : ", curr_speed)
-            
+
+        for l in range(no_of_vehicles):
+            vehicle_in_world_X = all_vehicles[l,4] *cos(angle_heading) - all_vehicles[l,5] * sin(angle_heading) +px
+            vehicle_in_world_Y = all_vehicles[l,4] * sin(angle_heading) + all_vehicles[l,5] * cos(angle_heading) +py
+            all_vehicles[l,4] = vehicle_in_world_X
+            all_vehicles[l,5] = vehicle_in_world_Y
+            print("Vehicle id : ",opp_vehicle_detected[l])
+            print("Global X : ", all_vehicles[l,4])
+            print("Global Y : ", all_vehicles[l,5])
+
         input1.wait() # Wait for data in the input
         input1.take()
         data1 = []
@@ -477,7 +528,7 @@ with rti.open_connector(
             print("Curve left : ", curve_l)
             print("Curve right : ", curve_r)
             print("Curve : ", curve)
-            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles, roadwidth))
+            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state))
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
             out = {}
@@ -541,14 +592,33 @@ with rti.open_connector(
         done_topic.write()
         print("message written")
         print("")
-    
-    traj_followed = np.array(traj_followed).T
-    print("Trajectory followed :-")
-    print(traj_followed)
-    plt.plot(traj_followed[0],traj_followed[1],'k', lw=0.5, alpha=0.5)
-    plt.plot(trajectory_to_follow[0]/100.0,trajectory_to_follow[1]/100.0,'--k', lw=0.5, alpha=0.5)
-    np.savetxt(pars.file_new_path, traj_followed, delimiter=',')
-    plt.show()
+        # if no_of_vehicles>0:
+        #     hii.append((all_vehicles[:no_of_vehicles,4],all_vehicles[:no_of_vehicles,5]))
+        
+        # if len(hii) >5:
+        #     hii=hii[1:]
+        # plt.clf()
+        # plt.show()
+        # plt.ion() 
+        # for j in hii:
+        #     # hii = np.array(traj_followed).T
+            
+        #     # # plt.plot(hii[0],hii[1],'k', lw=0.5, alpha=0.5)
+        #     # # plt.pause(0.001)
+        #     # # plt.plot(trajectory_to_follow[0],trajectory_to_follow[1],'--k', lw=0.5, alpha=0.5)
+        #     # # plt.pause(0.001)
+        #     plt.plot(j[0] ,j[1] ,'o', lw=0.5, alpha=0.5)
+        #     plt.pause(0.001)
+
+               
+    # traj_followed = np.array(traj_followed).T
+    # print("Trajectory followed :-")
+    # print(traj_followed)
+    # plt.plot(traj_followed[0],traj_followed[1],'k', lw=0.5, alpha=0.5)
+    # plt.plot(trajectory_to_follow[0],trajectory_to_follow[1]/,'--k', lw=0.5, alpha=0.5)
+    # plt.plot(all_vehicles[:,4] ,all_vehicles[:,5] ,'o', lw=0.5, alpha=0.5)
+    # np.savetxt(pars.file_new_path, traj_followed, delimiter=',')
+    # plt.show()
 
 if __name__ == '__main__':  
     start()
