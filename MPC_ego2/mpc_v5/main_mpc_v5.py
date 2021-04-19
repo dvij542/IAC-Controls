@@ -77,7 +77,7 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
         for vehicle in all_vehicles :
             xd = vehicle[0]+vehicle[2]*i*pars.T
             yd = vehicle[1]+vehicle[3]*i*pars.T
-            dist = (yc-yd)**2 + (xc-xd)**2
+            dist = ((yc-yd)**2 + (xc-xd)**2)**(1/2)
             if dist<mindist :
                 mindist = dist
                 minx = xd
@@ -85,7 +85,7 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
                 minindex = k
             k = k+1
         xc+=speed*cos(atan(curve[1]+2*curve[2]*xc+3*curve[3]*xc**2))
-        yc =curve[0]+curve[1]*xc+curve[2]*xc**2+curve[3]*xc**3
+        yc+=speed*sin(atan(curve[1]+2*curve[2]*xc+3*curve[3]*xc**2))
 
     print("min distance is ", mindist)
     if mindist < pars.dist_threshold :
@@ -152,16 +152,16 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
 
         costr = sr['f']
         x = 0
-        print("Cost from right : ", costr)
-        print("Cost from left : ", costl)
-        if curve_l[0]<2 :
+        if curve_l[0]<3 :
             costl = costl + 10000
-        if curve_r[0]>-2 :
+        if curve_r[0]>-3 :
             costr = costr + 10000
         if(costr<=costl):
             x = sr['x']
         else :
             x = sl['x']
+        print("Cost from right : ", costr)
+        print("Cost from left : ", costl)
         #rect = []
         ax = plt.gca()
         for i in range(no_of_vehicles):

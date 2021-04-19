@@ -25,8 +25,8 @@ g=SX.sym('g',2,pars.N+2)
 def calc_drafting_coeff_drag(x,y,xopp,yopp):
     dx = xopp-x-pars.L/2 
     dy = yopp-y
-    val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*dy*10
-    return 1
+    val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*fabs(dy)
+    return if_else((dx>0)*(val<1),val,1)
 
 def calc_force(c,v,x,y,xopp,yopp):
     wind_force = pars.air_resistance_const*v*v*(1 + (calc_drafting_coeff_drag(x,y,xopp,yopp)-1)*(v/pars.vmax))
@@ -42,7 +42,7 @@ def calc_force(c,v,x,y,xopp,yopp):
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
     [0,1]])
 R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
-    [0,0]])
+    [0,5]])
 rhs=[
         (v)*cos(theta+((atan(tan(delta/9.9)))/2)),
         (v)*sin(theta+((atan(tan(delta/9.9)))/2)),
