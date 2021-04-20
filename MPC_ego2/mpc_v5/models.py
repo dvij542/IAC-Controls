@@ -2,6 +2,7 @@
 # os.path.append("C:\\users\\dvij.kalaria\\appdata\\roaming\\python\\python37\\site-packages")
 from casadi import *
 import params as pars
+import util_funcs as utils
 x=SX.sym('x')
 y=SX.sym('y')
 theta=SX.sym('theta')
@@ -25,7 +26,7 @@ g=SX.sym('g',2,pars.N+2)
 def calc_drafting_coeff_drag(x,y,xopp,yopp):
     dx = xopp-x-pars.L/2 
     dy = yopp-y
-    val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*fabs(dy)
+    val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*dy*(2*utils.sigmoid(dy*5)-1)
     return if_else((dx>0)*(val<1),val,1)
 
 def calc_force(c,v,x,y,xopp,yopp):

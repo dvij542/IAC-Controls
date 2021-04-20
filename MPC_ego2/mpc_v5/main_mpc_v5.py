@@ -299,7 +299,7 @@ with rti.open_connector(
             data = sample.get_dictionary()
             
             for k in range(len(data['targetsArray'])):
-                all_vehicles[no_of_vehicles,0] = data['targetsArray'][k]['posXInChosenRef']
+                all_vehicles[no_of_vehicles,0] = data['targetsArray'][k]['posXInChosenRef'] - 3.2
                 all_vehicles[no_of_vehicles,1] = data['targetsArray'][k]['posYInChosenRef']
                 all_vehicles[no_of_vehicles,2] = data['targetsArray'][k]['absoluteSpeedX']
                 all_vehicles[no_of_vehicles,3] = data['targetsArray'][k]['absoluteSpeedY']
