@@ -349,8 +349,8 @@ with rti.open_connector(
                         all_vehicles[no_of_vehicles,1], \
                             math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
                             data['targetsArray'][k]['anchorPoint']) 
-                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] + 2.064369
-                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1] + 0.220795
+                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] + 0.220795
+                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1] + 2.064369
                 print("Vehicle no ", no_of_vehicles)
                 print("Vehicle id : ",opp_vehicle_detected[no_of_vehicles])
                 print("X : ", all_vehicles[no_of_vehicles,0])
@@ -388,8 +388,8 @@ with rti.open_connector(
                         all_vehicles[no_of_vehicles,1], \
                             math.atan2(all_vehicles[no_of_vehicles,3], all_vehicles[no_of_vehicles,2]),\
                             data['targetsArray'][k]['anchorPoint']) 
-                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] + 2.064369
-                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1] - 0.220795
+                all_vehicles[no_of_vehicles,4] = all_vehicles[no_of_vehicles,0] - 0.220795
+                all_vehicles[no_of_vehicles,5] = all_vehicles[no_of_vehicles,1] + 2.064369 
                 print("Vehicle no ", no_of_vehicles)
                 print("Vehicle id : ",opp_vehicle_detected[no_of_vehicles])
                 print("X : ", all_vehicles[no_of_vehicles,0])

@@ -5,6 +5,13 @@ import math
 import numpy as np
 from casadi import *
 
+def min_allowed_radius(vel):
+    dFz = pars.lift_coeff*vel**2
+    dfz = dFz/pars.fz0
+    muy = (pars.pdy1 + pars.pdy2*dfz)*pars.road_coeff
+    lateral_acc_max = muy*pars.gravity_constant*(1+dfz)
+    radius = (vel**2)/lateral_acc_max
+    return radius
 
 ################# models.P ###########
 # Initial posx,posy and heading angle are 0
@@ -30,36 +37,54 @@ for k in range(0,pars.N,1):
     models.itr[0,k]=st[0]
     for i in range(1,pars.no_iters,1):
         models.F_dash[i,k] = models.P[4]+2*models.P[5]*models.itr[i-1,k]+3*models.P[6]*models.itr[i-1,k]**2
-        models.F_val[i,k] = models.P[3] + models.P[4]*models.itr[i-1,k] + models.P[5]*models.itr[i-1,k]**2 + models.P[6]*models.itr[i-1,k]**3
-        models.itr[i,k] = models.itr[i-1,k]*((models.F_dash[i,k]**2)/(1+models.F_dash[i,k]**2))+(st[0]+models.F_dash[i,k]*(st[1]-models.F_val[i,k]))/(1+models.F_dash[i,k]**2)
-    models.F_dash[0,k] = models.P[4]+2*models.P[5]*models.itr[pars.no_iters-1,k]+3*models.P[6]*models.itr[pars.no_iters-1,k]**2
-    models.F_val[0,k] = models.P[3] + models.P[4]*models.itr[pars.no_iters-1,k] + models.P[5]*models.itr[pars.no_iters-1,k]**2 + models.P[6]*models.itr[pars.no_iters-1,k]**3
+        models.F_val[i,k] = models.P[3] + models.P[4]*models.itr[i-1,k] + models.P[5]*models.itr[i-1,k]**2 \
+            + models.P[6]*models.itr[i-1,k]**3
+        models.itr[i,k] = models.itr[i-1,k]*((models.F_dash[i,k]**2)/(1+models.F_dash[i,k]**2))+\
+            (st[0]+models.F_dash[i,k]*(st[1]-models.F_val[i,k]))/(1+models.F_dash[i,k]**2)
+    models.F_dash[0,k] = models.P[4]+2*models.P[5]*models.itr[pars.no_iters-1,k]+\
+        3*models.P[6]*models.itr[pars.no_iters-1,k]**2
+    models.F_val[0,k] = models.P[3] + models.P[4]*models.itr[pars.no_iters-1,k] + \
+        models.P[5]*models.itr[pars.no_iters-1,k]**2 + models.P[6]*models.itr[pars.no_iters-1,k]**3
     
     models.itr_l[0,k]=st[0]
     for i in range(1,pars.no_iters,1):
         models.F_dash_l[i,k] = models.P[-7]+2*models.P[-6]*models.itr_l[i-1,k]+3*models.P[-5]*models.itr_l[i-1,k]**2
-        models.F_val_l[i,k] = models.P[-8]+models.P[-7]*models.itr_l[i-1,k]+models.P[-6]*models.itr_l[i-1,k]**2 + models.P[-5]*models.itr_l[i-1,k]**3
-        models.itr_l[i,k] = models.itr_l[i-1,k]*((models.F_dash_l[i,k]**2)/(1+models.F_dash_l[i,k]**2))+(st[0]+models.F_dash_l[i,k]*(st[1]-models.F_val_l[i,k]))/(1+models.F_dash_l[i,k]**2)
-    models.F_dash_l[0,k] = models.P[-7]+2*models.P[-6]*models.itr_l[pars.no_iters-1,k]+3*models.P[-5]*models.itr_l[pars.no_iters-1,k]**2
-    models.F_val_l[0,k] = models.P[-8]+models.P[-7]*models.itr_l[pars.no_iters-1,k]+models.P[-6]*models.itr_l[pars.no_iters-1,k]**2 + models.P[-5]*models.itr_l[pars.no_iters-1,k]**3
-    distance_l =  ((st[0]-models.itr_l[pars.no_iters-1,k])**2 + (st[1]-models.F_val_l[0,k])**2)**(1/2)*(2*(st[1]>models.F_val_l[0,k])-1)
+        models.F_val_l[i,k] = models.P[-8]+models.P[-7]*models.itr_l[i-1,k]+models.P[-6]*models.itr_l[i-1,k]**2 \
+            + models.P[-5]*models.itr_l[i-1,k]**3
+        models.itr_l[i,k] = models.itr_l[i-1,k]*((models.F_dash_l[i,k]**2)/(1+models.F_dash_l[i,k]**2))+\
+            (st[0]+models.F_dash_l[i,k]*(st[1]-models.F_val_l[i,k]))/(1+models.F_dash_l[i,k]**2)
+    models.F_dash_l[0,k] = models.P[-7]+2*models.P[-6]*models.itr_l[pars.no_iters-1,k]+\
+        3*models.P[-5]*models.itr_l[pars.no_iters-1,k]**2
+    models.F_val_l[0,k] = models.P[-8]+models.P[-7]*models.itr_l[pars.no_iters-1,k]+\
+        models.P[-6]*models.itr_l[pars.no_iters-1,k]**2 + models.P[-5]*models.itr_l[pars.no_iters-1,k]**3
+    distance_l =  ((st[0]-models.itr_l[pars.no_iters-1,k])**2 + \
+        (st[1]-models.F_val_l[0,k])**2)**(1/2)*(2*(st[1]>models.F_val_l[0,k])-1)
     
     models.itr_r[0,k]=st[0]
     for i in range(1,pars.no_iters,1):
         models.F_dash_r[i,k] = models.P[-3]+2*models.P[-2]*models.itr_r[i-1,k]+3*models.P[-1]*models.itr_r[i-1,k]**2
-        models.F_val_r[i,k] = models.P[-4]+models.P[-3]*models.itr_r[i-1,k]+models.P[-2]*models.itr_r[i-1,k]**2 + models.P[-1]*models.itr_r[i-1,k]**3
-        models.itr_r[i,k] = models.itr_r[i-1,k]*((models.F_dash_r[i,k]**2)/(1+models.F_dash_r[i,k]**2))+(st[0]+models.F_dash_r[i,k]*(st[1]-models.F_val_r[i,k]))/(1+models.F_dash_r[i,k]**2)
-    models.F_dash_r[0,k] = models.P[-3]+2*models.P[-2]*models.itr_r[pars.no_iters-1,k]+3*models.P[-1]*models.itr_r[pars.no_iters-1,k]**2
-    models.F_val_r[0,k] = models.P[-4]+models.P[-3]*models.itr_r[pars.no_iters-1,k]+models.P[-2]*models.itr_r[pars.no_iters-1,k]**2 + models.P[-1]*models.itr_r[pars.no_iters-1,k]**3
-    distance_r =  ((st[0]-models.itr_r[pars.no_iters-1,k])**2 + (st[1]-models.F_val_r[0,k])**2)**(1/2)*(2*(st[1]<models.F_val_r[0,k])-1)
+        models.F_val_r[i,k] = models.P[-4]+models.P[-3]*models.itr_r[i-1,k]+models.P[-2]*models.itr_r[i-1,k]**2 \
+            + models.P[-1]*models.itr_r[i-1,k]**3
+        models.itr_r[i,k] = models.itr_r[i-1,k]*((models.F_dash_r[i,k]**2)/(1+models.F_dash_r[i,k]**2))+\
+            (st[0]+models.F_dash_r[i,k]*(st[1]-models.F_val_r[i,k]))/(1+models.F_dash_r[i,k]**2)
+    models.F_dash_r[0,k] = models.P[-3]+2*models.P[-2]*models.itr_r[pars.no_iters-1,k]+\
+        3*models.P[-1]*models.itr_r[pars.no_iters-1,k]**2
+    models.F_val_r[0,k] = models.P[-4]+models.P[-3]*models.itr_r[pars.no_iters-1,k]+\
+        models.P[-2]*models.itr_r[pars.no_iters-1,k]**2 + models.P[-1]*models.itr_r[pars.no_iters-1,k]**3
+    distance_r =  ((st[0]-models.itr_r[pars.no_iters-1,k])**2 + \
+        (st[1]-models.F_val_r[0,k])**2)**(1/2)*(2*(st[1]<models.F_val_r[0,k])-1)
     
-    models.R[0,0] = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))/(((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]) - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
+    models.R[0,0] = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))\
+        /(((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]) - \
+            (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
     models.g[0,k] =  0 #distance_l
     models.g[1,k] =  0 #distance_r
     models.pen[0,k] = distance_l + pars.tolerance
     models.pen[1,k] = distance_r + pars.tolerance
-    models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*(models.pen[0,k]>0)*models.pen[0,k]**2 # Penalise for going out of left lane
-    models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*(models.pen[1,k]>0)*models.pen[1,k]**2 # Penalise for going out of right lane
+    models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
+        (models.pen[0,k]>0)*models.pen[0,k]**2 # Penalise for going out of left lane
+    models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
+        (models.pen[1,k]>0)*models.pen[1,k]**2 # Penalise for going out of right lane
     Radius = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))
     
     dFz = pars.lift_coeff*st[3]**2
@@ -70,25 +95,39 @@ for k in range(0,pars.N,1):
     # Penalty for lateral slip
     lateral_acc_max = muy*pars.gravity_constant*(1+dfz)
     lateral_acc_req = (st[3]**2)/Radius
-    models.obj = models.obj + pars.k_lat_slip*utils.sigmoid(10*(lateral_acc_req-lateral_acc_max))*(lateral_acc_max - lateral_acc_req)**2
+    models.obj = models.obj + pars.k_lat_slip*utils.sigmoid(10*(lateral_acc_req-lateral_acc_max))*\
+        (lateral_acc_max - lateral_acc_req)**2
 
     for t in range(pars.max_no_of_vehicles) : 
-        x_v = (models.other_vehicle_x[t,k]-st[0])*cos(atan(models.F_dash[0,k]))+(models.other_vehicle_y[t,k]-st[1])*sin(atan(models.F_dash[0,k]))
-        y_v = (models.other_vehicle_y[t,k]-st[1])*cos(atan(models.F_dash[0,k]))-(models.other_vehicle_x[t,k]-st[0])*sin(atan(models.F_dash[0,k]))
-        # models.obj = models.obj + blocking_maneuver_cost*(x_v < -vehicle_length_r)*(y_v>0)*(y_v)*((((models.P[9+4*t]-models.X[0,0])**2+(models.P[10+4*t]-models.X[1,0])**2))<100)
-        x_r = (models.other_vehicle_x[t,k]-st[0])*cos(models.other_vehicle_t[t,k]) + (models.other_vehicle_y[t,k]-st[1])*sin(models.other_vehicle_t[t,k])
-        y_r = -(models.other_vehicle_x[t,k]-st[0])*sin(models.other_vehicle_t[t,k]) + (models.other_vehicle_y[t,k]-st[1])*cos(models.other_vehicle_t[t,k])
+        x_v = (models.other_vehicle_x[t,k]-st[0])*cos(atan(models.F_dash[0,k]))+\
+            (models.other_vehicle_y[t,k]-st[1])*sin(atan(models.F_dash[0,k]))
+        y_v = (models.other_vehicle_y[t,k]-st[1])*cos(atan(models.F_dash[0,k]))-\
+            (models.other_vehicle_x[t,k]-st[0])*sin(atan(models.F_dash[0,k]))
+        # models.obj = models.obj + blocking_maneuver_cost*(x_v < -vehicle_length_r)*\
+        # (y_v>0)*(y_v)*((((models.P[9+4*t]-models.X[0,0])**2+(models.P[10+4*t]-models.X[1,0])**2))<100)
+        x_r = (models.other_vehicle_x[t,k]-st[0])*cos(models.other_vehicle_t[t,k]) + \
+            (models.other_vehicle_y[t,k]-st[1])*sin(models.other_vehicle_t[t,k])
+        y_r = -(models.other_vehicle_x[t,k]-st[0])*sin(models.other_vehicle_t[t,k]) + \
+            (models.other_vehicle_y[t,k]-st[1])*cos(models.other_vehicle_t[t,k])
         
-        models.obj = models.obj + (utils.sigmoid(5*(-y_r+2)))*(1-utils.sigmoid(-5*(y_r+2)))*(pars.obs_dist/((x_r/pars.L)**2+(y_r/pars.W)**2+0.05)) # To maintain safe distance from other vehicles
+        models.obj = models.obj + if_else((t<=models.P[0]-1),(utils.sigmoid(5*(x_r-pars.drafting_dist_x)))*\
+            pars.Q_drafting*(y_r*(2*utils.sigmoid(y_r*5)-1)),0) # To attract the vehicle in hope of drafting
+        models.obj = models.obj + if_else((t<=models.P[0]-1),(utils.sigmoid(5*(pars.drafting_dist_x-x_r)))*(utils.sigmoid(5*(-y_r+pars.drafting_dist_y)))\
+            *(1-utils.sigmoid(-5*(y_r+pars.drafting_dist_y)))*(pars.obs_dist/((x_r/pars.L)**2+\
+            (y_r/pars.W)**2+0.05)),0) # To maintain safe distance from other vehicles
         models.other_vehicle_t[t,k+1] = models.other_vehicle_t[t,k] + pars.T*(models.other_vehicle_v[t,k]/Radius)
-        models.other_vehicle_x[t,k+1] = models.other_vehicle_x[t,k] + models.other_vehicle_v[t,k]*cos(models.other_vehicle_t[t,k])*pars.T
-        models.other_vehicle_y[t,k+1] = models.other_vehicle_y[t,k] + models.other_vehicle_v[t,k]*sin(models.other_vehicle_t[t,k])*pars.T
+        models.other_vehicle_x[t,k+1] = models.other_vehicle_x[t,k] + \
+            models.other_vehicle_v[t,k]*cos(models.other_vehicle_t[t,k])*pars.T
+        models.other_vehicle_y[t,k+1] = models.other_vehicle_y[t,k] + \
+            models.other_vehicle_v[t,k]*sin(models.other_vehicle_t[t,k])*pars.T
         models.other_vehicle_v[t,k+1] = models.other_vehicle_v[t,k]
     models.obj = models.obj + pars.Q_ang*(atan(models.F_dash[0,k])-st[2])**2
-    models.obj = models.obj - (1-utils.sigmoid(10*(lateral_acc_req-lateral_acc_max)))*pars.Q_along*st[3]*cos(atan(models.F_dash[0,k])-st[2])*models.R[0,0]/3 # To move along the lane 
+    models.obj = models.obj - (1-utils.sigmoid(10*(lateral_acc_req-lateral_acc_max)))*\
+        pars.Q_along*st[3]*cos(atan(models.F_dash[0,k])-st[2])*models.R[0,0]/3 # To move along the lane 
     required_val = Vi + (k+1)*(Vf-Vi)/pars.N
     models.obj = models.obj + ((st[3]>required_val)*pars.k_vel_follow*(required_val-st[3])**2)/25 # Cost for speed difference from optimal racing line speeed
-    models.obj = models.obj + (pars.Q_dist*(models.P[3]+models.P[4]*st[0]+models.P[5]*st[0]*st[0]+models.P[6]*st[0]*st[0]*st[0]-st[1])**2)/25 # Distance from the center lane
+    models.obj = models.obj + (pars.Q_dist*(models.P[3]+models.P[4]*st[0]+models.P[5]*st[0]*st[0]\
+        +models.P[6]*st[0]*st[0]*st[0]-st[1])**2)/25 # Distance from the center lane
     models.obj = models.obj + con.T@models.R1@con # Penalise for more steering angle
 
 for k in range(0,pars.N-1,1):
@@ -133,9 +172,14 @@ for k in range (0,2*pars.N,2):
 
 # k is the time step
 # models.X[3,k] is the speed at 
-for k in range (1,(2*pars.N),2): 
-    lbx[k]=-math.pi
-    ubx[k]=math.pi
+for k in range (1,(2*pars.N),2):
+    min_radius = min_allowed_radius(models.X[3,int(k/2)])
+    max_steering_angle = asin(pars.L/(2*min_radius)) * 9.9
+    max_steering_angle = min(math.pi,float(max_steering_angle))
+    lbx[k]=-max_steering_angle
+    ubx[k]=max_steering_angle
+    # lbx[k] = -math.pi
+    # ubx[k] = math.pi
     lbg[k]=-100
     ubg[k] = 100
     #if k>pars.N//4:
