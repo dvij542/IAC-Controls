@@ -160,3 +160,9 @@ def anchorPointToCenter(x,y,t,no) :
     xdd = xd*math.cos(t) - yd*math.sin(t)
     ydd = xd*math.sin(t) + yd*math.cos(t)
     return x + xdd, y + ydd
+
+def under_ll_turn(x,y):
+    if y<-2120 and x<-258 :
+        return True
+    else :
+        return False

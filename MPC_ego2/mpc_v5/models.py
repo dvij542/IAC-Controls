@@ -88,4 +88,4 @@ g[1,pars.N] = X[1,0]
 g[0,pars.N+1] = X[2,0]
 g[1,pars.N+1] = X[3,0]
 ff=Function('ff',[U,P],[X])
-obj=64000
+obj=4000

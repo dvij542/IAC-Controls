@@ -519,9 +519,12 @@ with rti.open_connector(
                 c1 = lr2['c1']
                 c2 = lr2['c2']
                 c3 = lr2['c3']
-
+            
             curve_l = [(ll1['c0']+ll2['c0'])/2,(ll1['c1']+ll2['c1'])/2,(ll1['c2']+ll2['c2'])/2,(ll1['c3']+ll2['c3'])/2]
             curve_r = [(lr1['c0']+lr2['c0'])/2,(lr1['c1']+lr2['c1'])/2,(lr1['c2']+lr2['c2'])/2,(lr1['c3']+lr2['c3'])/2]
+            if utils.under_ll_turn(px,py) :
+                curve_l[0] = curve_r[0] + pars.default_lane_width*sqrt(1+curve_r[1]**2)
+            curve_r[0] = curve_r[0] + 1*sqrt(1+curve_r[1]**2)
             curve = [c0,c1,c2,c3]
             print("Time", data['TimeOfUpdate'])
             print("No of vehicles : ", no_of_vehicles)
@@ -532,6 +535,7 @@ with rti.open_connector(
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
             out = {}
+
             if curr_speed < pars.start_speed :
                 P = pars.kp_start*(0.06 - lsr[2])
                 target_throttle = P + I + D
@@ -546,8 +550,10 @@ with rti.open_connector(
                     target_throttle = target_throttle#*100
             else :
                 Q_ang = 0
+            if lsr[2] > 0.05 :
+                target_throttle = -720*30
             if curr_speed > 83 :
-                target_throttle = (316.3*5/18) - curr_speed
+                target_throttle = (306.3*5/18) - curr_speed
             out['AcceleratorAdditive'] = max(0,target_throttle)
             out['AcceleratorMultiplicative'] = 0
             out['BrakeAdditive'] = -min(0,target_throttle)
@@ -611,14 +617,14 @@ with rti.open_connector(
         #     plt.pause(0.001)
 
                
-    # traj_followed = np.array(traj_followed).T
-    # print("Trajectory followed :-")
-    # print(traj_followed)
-    # plt.plot(traj_followed[0],traj_followed[1],'k', lw=0.5, alpha=0.5)
-    # plt.plot(trajectory_to_follow[0],trajectory_to_follow[1]/,'--k', lw=0.5, alpha=0.5)
-    # plt.plot(all_vehicles[:,4] ,all_vehicles[:,5] ,'o', lw=0.5, alpha=0.5)
-    # np.savetxt(pars.file_new_path, traj_followed, delimiter=',')
-    # plt.show()
+    traj_followed = np.array(traj_followed).T
+    print("Trajectory followed :-")
+    print(traj_followed)
+    plt.plot(traj_followed[0],traj_followed[1],'k', lw=0.5, alpha=0.5)
+    plt.plot(trajectory_to_follow[0],trajectory_to_follow[1],'--k', lw=0.5, alpha=0.5)
+    plt.plot(all_vehicles[:,4] ,all_vehicles[:,5] ,'o', lw=0.5, alpha=0.5)
+    np.savetxt(pars.file_new_path, traj_followed, delimiter=',')
+    plt.show()
 
 if __name__ == '__main__':  
     start()

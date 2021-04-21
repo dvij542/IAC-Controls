@@ -74,18 +74,16 @@ for k in range(0,pars.N,1):
     distance_r =  ((st[0]-models.itr_r[pars.no_iters-1,k])**2 + \
         (st[1]-models.F_val_r[0,k])**2)**(1/2)*(2*(st[1]<models.F_val_r[0,k])-1)
     
-    models.R[0,0] = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))\
-        /(((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]) - \
-            (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
+    Radius = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))
+    models.R[0,0] = Radius/(Radius - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
     models.g[0,k] =  0 #distance_l
     models.g[1,k] =  0 #distance_r
     models.pen[0,k] = distance_l + pars.tolerance
     models.pen[1,k] = distance_r + pars.tolerance
     models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
-        (models.pen[0,k]>0)*models.pen[0,k]**2 # Penalise for going out of left lane
+        utils.sigmoid(10*models.pen[0,k])*models.pen[0,k]**2 # Penalise for going out of left lane
     models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
-        (models.pen[1,k]>0)*models.pen[1,k]**2 # Penalise for going out of right lane
-    Radius = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))
+        utils.sigmoid(10*models.pen[1,k])*models.pen[1,k]**2 # Penalise for going out of right lane
     
     dFz = pars.lift_coeff*st[3]**2
     dfz = dFz/pars.fz0
@@ -97,7 +95,10 @@ for k in range(0,pars.N,1):
     lateral_acc_req = (st[3]**2)/Radius
     models.obj = models.obj + pars.k_lat_slip*utils.sigmoid(10*(lateral_acc_req-lateral_acc_max))*\
         (lateral_acc_max - lateral_acc_req)**2
-
+    min_radius = min_allowed_radius(st[3])
+    max_steering_angle = asin(pars.L/(2*min_radius)) * 9
+    models.obj = models.obj + utils.sigmoid(10*(models.U[1,k]-max_steering_angle))*utils.sigmoid(-10*(models.U[1,k]+max_steering_angle))*\
+        pars.Q_steering_over_limit*(models.U[1,k]-max_steering_angle)**2
     for t in range(pars.max_no_of_vehicles) : 
         x_v = (models.other_vehicle_x[t,k]-st[0])*cos(atan(models.F_dash[0,k]))+\
             (models.other_vehicle_y[t,k]-st[1])*sin(atan(models.F_dash[0,k]))
@@ -110,9 +111,11 @@ for k in range(0,pars.N,1):
         y_r = -(models.other_vehicle_x[t,k]-st[0])*sin(models.other_vehicle_t[t,k]) + \
             (models.other_vehicle_y[t,k]-st[1])*cos(models.other_vehicle_t[t,k])
         
-        models.obj = models.obj + if_else((t<=models.P[0]-1),(utils.sigmoid(5*(x_r-pars.drafting_dist_x)))*\
+        thres_dist = pars.drafting_dist_x + 0.001*(st[3]>models.other_vehicle_v[t,k])*(st[3]-models.other_vehicle_v[t,k])**2
+        models.obj = models.obj + if_else((t<=models.P[0]-1),(utils.sigmoid(5*(x_r-thres_dist)))*\
             pars.Q_drafting*(y_r*(2*utils.sigmoid(y_r*5)-1)),0) # To attract the vehicle in hope of drafting
-        models.obj = models.obj + if_else((t<=models.P[0]-1),(utils.sigmoid(5*(pars.drafting_dist_x-x_r)))*(utils.sigmoid(5*(-y_r+pars.drafting_dist_y)))\
+        models.obj = models.obj + if_else((t<=models.P[0]-1),\
+            (utils.sigmoid(5*(thres_dist-x_r)))*(utils.sigmoid(5*(-y_r+pars.drafting_dist_y)))\
             *(1-utils.sigmoid(-5*(y_r+pars.drafting_dist_y)))*(pars.obs_dist/((x_r/pars.L)**2+\
             (y_r/pars.W)**2+0.05)),0) # To maintain safe distance from other vehicles
         models.other_vehicle_t[t,k+1] = models.other_vehicle_t[t,k] + pars.T*(models.other_vehicle_v[t,k]/Radius)
@@ -125,7 +128,7 @@ for k in range(0,pars.N,1):
     models.obj = models.obj - (1-utils.sigmoid(10*(lateral_acc_req-lateral_acc_max)))*\
         pars.Q_along*st[3]*cos(atan(models.F_dash[0,k])-st[2])*models.R[0,0]/3 # To move along the lane 
     required_val = Vi + (k+1)*(Vf-Vi)/pars.N
-    models.obj = models.obj + ((st[3]>required_val)*pars.k_vel_follow*(required_val-st[3])**2)/25 # Cost for speed difference from optimal racing line speeed
+    models.obj = models.obj + (utils.sigmoid(10*(st[3]-required_val))*pars.k_vel_follow*(required_val-st[3])**2)/25 # Cost for speed difference from optimal racing line speeed
     models.obj = models.obj + (pars.Q_dist*(models.P[3]+models.P[4]*st[0]+models.P[5]*st[0]*st[0]\
         +models.P[6]*st[0]*st[0]*st[0]-st[1])**2)/25 # Distance from the center lane
     models.obj = models.obj + con.T@models.R1@con # Penalise for more steering angle
@@ -174,13 +177,15 @@ for k in range (0,2*pars.N,2):
 # models.X[3,k] is the speed at 
 for k in range (1,(2*pars.N),2):
     min_radius = min_allowed_radius(models.X[3,int(k/2)])
-    max_steering_angle = asin(pars.L/(2*min_radius)) * 9.9
+    max_steering_angle = asin(pars.L/(2*min_radius)) * 0.09
+    # print(max_steering_angle)
     max_steering_angle = min(math.pi,float(max_steering_angle))
+    # print(max_steering_angle)
     lbx[k]=-max_steering_angle
     ubx[k]=max_steering_angle
     # lbx[k] = -math.pi
     # ubx[k] = math.pi
-    lbg[k]=-100
+    lbg[k] = -100
     ubg[k] = 100
     #if k>pars.N//4:
     #   ubg[k]=0
