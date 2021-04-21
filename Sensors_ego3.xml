@@ -179,7 +179,7 @@ This code contains trade secrets of Real-Time Innovations, Inc.
         <member name="id" id="0" type="int16"/>
         <member name="scanerId" id="1" type="int16"/>
         <member name="detectionStatus" id="2" type="int16"/>
-        <member name="type" id="3" type="int16"/>
+        <member name="type_" id="3" type="int16"/>
         <member name="beamIndex" id="4" type="int16"/>
         <member name="existenceTime" id="5" type="float64"/>
         <member name="anchorPoint" id="6" type="int16"/>
