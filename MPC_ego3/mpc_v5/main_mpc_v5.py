@@ -526,6 +526,13 @@ with rti.open_connector(
                 curve_l[0] = curve_r[0] + pars.default_lane_width*sqrt(1+curve_r[1]**2)
             curve_r[0] = curve_r[0] + 1*sqrt(1+curve_r[1]**2)
             curve = [c0,c1,c2,c3]
+            if utils.inside_region_2(px,py) :
+                curve = utils.get_center_line(px,py,angle_heading)
+                curve_l=curve.copy()
+                curve_r=curve.copy()
+                curve_l[0] = curve[0] + (pars.default_lane_width/2 - 3)*sqrt(1+curve[1]**2)
+                curve_r[0] = curve[0] - (pars.default_lane_width/2)*sqrt(1+curve[1]**2)
+            
             print("Time", data['TimeOfUpdate'])
             print("No of vehicles : ", no_of_vehicles)
             print("Curve left : ", curve_l)

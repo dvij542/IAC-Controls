@@ -5,7 +5,7 @@ parameters:
   start_speed: 10 # Speed in m/s to give start_throttle
 
   vmax: 83.3
-  road_coeff: 0.7
+  road_coeff: 0.8
   vehicle_length_r: 2 # Vehicle distance to perform blocking maneuver 
   blocking_maneuver_cost: 0
   air_resistance_const: 0.43
@@ -19,7 +19,7 @@ parameters:
   file_new_path: ./test.txt # File in which the new coordinates will be saved
   Q_along: 6  # Weight for progress along the road
   Q_drafting: 0.5 # Weight for aligning ego vehicle towards the back of other vehicle 
-  Q_dist: 0  # Weight for distance for the center of the road
+  Q_dist: 3  # Weight for distance for the center of the road
   Q_steering_over_limit: 0
   penalty_out_of_road: 6 # Penalise for planning path outside the road
   no_iters: 3

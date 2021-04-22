@@ -25,6 +25,25 @@ SC_UNKNOWN_LEFT_FACE_REAR = 16
 def sigmoid(x) :
     return if_else(x<0,SX.exp(x)/(SX.exp(x)+1),1/(SX.exp(-x)+1)) 
 
+
+def inside_region_2(px,py):
+    if py < -1144 and px < -240 :
+        return True
+    return False
+
+def get_center_line(px,py,angle_heading) :
+    X1 = -315
+    Y1 = -1151
+    X2 = -309
+    Y2 = -1454
+    theta = atan2(Y2-Y1,X2-X1)
+    theta_diff = angle_heading - theta
+    m = -tan(theta_diff)
+    M = (Y2-Y1)/(X2-X1)
+    dist = ((py-Y1)-M*(px-X1))/sqrt(1+M**2)
+    c = -dist/cos(theta_diff)
+    return [c,m,0,0] 
+
 def calc_force_from_slip(slip,speed) :
     fz = p.fz0 + p.lift_coeff*speed**2
     dfz = (fz-p.fz0)/p.fz0

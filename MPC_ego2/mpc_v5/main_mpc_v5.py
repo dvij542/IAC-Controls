@@ -251,7 +251,7 @@ with rti.open_connector(
     
     # Read data from the input, transform it and write it into the output
     print("Waiting for data...")
-    
+    radius_of_curvature = 10000
     #Initialise
     curr_steering = 0
     curr_speed = 0
@@ -483,6 +483,7 @@ with rti.open_connector(
                 ll1['c1'] = 0
                 ll1['c2'] = 0
                 ll1['c3'] = 0
+                ll1['curvatureRadius'] = 9999
                 ll2 = dict()
                 ll2['c0'] = 7
                 ll2['c1'] = 0
@@ -526,6 +527,14 @@ with rti.open_connector(
                 curve_l[0] = curve_r[0] + pars.default_lane_width*sqrt(1+curve_r[1]**2)
             curve_r[0] = curve_r[0] + 1*sqrt(1+curve_r[1]**2)
             curve = [c0,c1,c2,c3]
+            if utils.inside_region_2(px,py) :
+                curve = utils.get_center_line(px,py,angle_heading)
+                curve_l=curve.copy()
+                curve_r=curve.copy()
+                curve_l[0] = curve[0] + (pars.default_lane_width/2)*sqrt(1+curve[1]**2)
+                curve_r[0] = curve[0] - (pars.default_lane_width/2)*sqrt(1+curve[1]**2)
+            radius_of_curvature = ll1['curvatureRadius']
+            print("Radius of Curvature", ll1['curvatureRadius'])
             print("Time", data['TimeOfUpdate'])
             print("No of vehicles : ", no_of_vehicles)
             print("Curve left : ", curve_l)

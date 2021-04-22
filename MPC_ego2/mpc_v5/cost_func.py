@@ -11,6 +11,7 @@ def min_allowed_radius(vel):
     muy = (pars.pdy1 + pars.pdy2*dfz)*pars.road_coeff
     lateral_acc_max = muy*pars.gravity_constant*(1+dfz)
     radius = (vel**2)/lateral_acc_max
+    print(radius)
     return radius
 
 ################# models.P ###########
@@ -75,7 +76,7 @@ for k in range(0,pars.N,1):
         (st[1]-models.F_val_r[0,k])**2)**(1/2)*(2*(st[1]<models.F_val_r[0,k])-1)
     
     Radius = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))
-    models.R[0,0] = Radius/(Radius - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
+    models.R[0,0] = 1#Radius/(Radius - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
     models.g[0,k] =  0 #distance_l
     models.g[1,k] =  0 #distance_r
     models.pen[0,k] = distance_l + pars.tolerance
@@ -127,7 +128,7 @@ for k in range(0,pars.N,1):
     models.obj = models.obj + pars.Q_ang*(atan(models.F_dash[0,k])-st[2])**2
     models.obj = models.obj - (1-utils.sigmoid(10*(lateral_acc_req-lateral_acc_max)))*\
         pars.Q_along*st[3]*cos(atan(models.F_dash[0,k])-st[2])*models.R[0,0]/3 # To move along the lane 
-    required_val = Vi + (k+1)*(Vf-Vi)/pars.N
+    required_val = Vi + (k+1)*(Vf-Vi)/pars.N + 10
     models.obj = models.obj + (utils.sigmoid(10*(st[3]-required_val))*pars.k_vel_follow*(required_val-st[3])**2)/25 # Cost for speed difference from optimal racing line speeed
     models.obj = models.obj + (pars.Q_dist*(models.P[3]+models.P[4]*st[0]+models.P[5]*st[0]*st[0]\
         +models.P[6]*st[0]*st[0]*st[0]-st[1])**2)/25 # Distance from the center lane
@@ -176,13 +177,13 @@ for k in range (0,2*pars.N,2):
 # k is the time step
 # models.X[3,k] is the speed at 
 for k in range (1,(2*pars.N),2):
-    min_radius = min_allowed_radius(models.X[3,int(k/2)])
-    max_steering_angle = asin(pars.L/(2*min_radius)) * 0.09
-    # print(max_steering_angle)
+    min_radius = min_allowed_radius(70)
+    max_steering_angle = asin(pars.L/(min_radius)) * 9.9
+    print(max_steering_angle)
     max_steering_angle = min(math.pi,float(max_steering_angle))
     # print(max_steering_angle)
-    lbx[k]=-max_steering_angle
-    ubx[k]=max_steering_angle
+    lbx[k]=-0.2#max_steering_angle
+    ubx[k]=0.2#max_steering_angle
     # lbx[k] = -math.pi
     # ubx[k] = math.pi
     lbg[k] = -100
