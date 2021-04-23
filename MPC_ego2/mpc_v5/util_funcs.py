@@ -4,6 +4,35 @@ import params as p
 import math
 from casadi import *
 
+# Consts
+pcy1 = 1.603
+pdy1 = 1.654
+pdy2 = -0.1783
+pdy3 = 0
+pey1 = -1.409
+pey2 = -1.6617
+pey3 = 0.26886
+pey4 = -13.61
+pky1 = -53.05
+pky2 = 4.1265
+pky3 = 1.5016
+phy1 = 0.0039
+phy2 = -0.00253
+pvy1 = -0.01038
+pvy2 = -0.1
+pvy3 = 0.4498
+pvy4 = -1.5
+
+rby1 = 35.304
+rby2 = 15.666
+rby3 = -0.01179
+
+rcy1 = 1.018
+rey1 = 0.35475
+rey2 = 0.01966
+rhy1 = 0.00667
+rhy2 = 0.00207
+
 SC_REAR_RIGHT_EDGE = 0
 SC_REAR_LEFT_EDGE = 1
 SC_FRONT_RIGHT_EDGE = 2
@@ -43,6 +72,20 @@ def get_center_line(px,py,angle_heading) :
     c = -dist/cos(theta_diff)
     return [c,m,0,0] 
 
+def calc_force_from_slip_angle(slip_angle,fz,fz0)
+    epsilon = 0.0001
+    dfz = (fz-fz0)/fz0
+    shy = phy1 + phy2*dfz
+	ky = slip_angle + shy
+	Cy = pcy1
+	muy = pdy1 + pdy2*dfz
+	Dy = muy*fz
+	Ey = (pey1 + pey2*dfz + pey3*dfz**2)*(1-pey4)
+	K = fz*(pky1+pky2*dfz)*exp(pky3*dfz)
+	By=K/(Cy*Dy+epsilon)
+	svy = fz*(pvy1+pvy2*dfz+pvy3*dfz**2+pvy4*dfz**3)
+	Fy = Dy*sin(Cy*np.atan(By*ky - Ey*(By*ky-np.atan(By*ky))))
+    return Fy
 
 def calc_force_from_slip(slip,speed) :
     fz = p.fz0 + p.lift_coeff*speed**2

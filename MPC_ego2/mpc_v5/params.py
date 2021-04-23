@@ -4,6 +4,10 @@ import yaml
 f = open('params.yaml')
 params = yaml.load(f, Loader=yaml.FullLoader)
 
+moment_of_inertia = params['parameters']['moment_of_inertia']
+Lf = params['parameters']['Lf']
+Lr = params['parameters']['Lr']
+steering_ratio = params['parameters']['steering_ratio']
 manual_gear_change = params['parameters']['manual_gear_change']
 gear_change_engine_thres= params['parameters']['gear_change_engine_thres']
 start_throttle = params['parameters']['start_throttle']
