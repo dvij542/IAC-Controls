@@ -55,7 +55,7 @@ def sigmoid(x) :
     return if_else(x<0,SX.exp(x)/(SX.exp(x)+1),1/(SX.exp(-x)+1)) 
 
 def inside_region_2(px,py):
-    if py < -1144 and px < -240 :
+    if py < -1144 and px < -240 and py > -1470:
         return True
     return False
 
@@ -72,19 +72,19 @@ def get_center_line(px,py,angle_heading) :
     c = -dist/cos(theta_diff)
     return [c,m,0,0] 
 
-def calc_force_from_slip_angle(slip_angle,fz,fz0)
+def calc_force_from_slip_angle(slip_angle,fz,fz0):
     epsilon = 0.0001
     dfz = (fz-fz0)/fz0
     shy = phy1 + phy2*dfz
-	ky = slip_angle + shy
-	Cy = pcy1
-	muy = pdy1 + pdy2*dfz
-	Dy = muy*fz
-	Ey = (pey1 + pey2*dfz + pey3*dfz**2)*(1-pey4)
-	K = fz*(pky1+pky2*dfz)*exp(pky3*dfz)
-	By=K/(Cy*Dy+epsilon)
-	svy = fz*(pvy1+pvy2*dfz+pvy3*dfz**2+pvy4*dfz**3)
-	Fy = Dy*sin(Cy*np.atan(By*ky - Ey*(By*ky-np.atan(By*ky))))
+    ky = slip_angle 
+    Cy = pcy1
+    muy = pdy1 + pdy2*dfz
+    Dy = muy*fz
+    Ey = (pey1 + pey2*dfz + pey3*dfz**2)*(1-pey4)
+    K = fz*(pky1+pky2*dfz)#*exp(pky3*dfz)
+    By=K/(Cy*Dy+epsilon)
+    svy = fz*(pvy1+pvy2*dfz+pvy3*dfz**2+pvy4*dfz**3)
+    Fy = Dy*sin(Cy*atan(By*ky - Ey*(By*ky-atan(By*ky))))
     return Fy
 
 def calc_force_from_slip(slip,speed) :

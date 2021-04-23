@@ -4,10 +4,10 @@ parameters:
   start_throttle: 1 # Throttle to give at start
   start_speed: 10 # Speed in m/s to give start_throttle
   steering_ratio: 10 # Ratio of Steering angle to wheel angle  
-  moment_of_inertia: 100 # Moment of inertia about the COM z axis
-  L: 2.9
-  Lf: 1.7
-  Lr: 1.2 
+  moment_of_inertia: 614.6255843280001 # Moment of inertia about the COM z axis
+  L: 2.9 # Length of vehicle
+  Lf: 1.7 # Distance of COM from front axle
+  Lr: 1.2 # Distance of COM from rear axle
 
   vmax: 83.3
   road_coeff: 0.8
@@ -33,7 +33,7 @@ parameters:
   drafting_dist_x: 4
   drafting_dist_y: 3
   T: .04 # Time horizon
-  N: 20 # Number of control intervals
+  N: 10 # Number of control intervals
   kp: 1 # For PID controller
   obs_dist: 60 # To maintain from other vehicles at each time step
   ki: 0

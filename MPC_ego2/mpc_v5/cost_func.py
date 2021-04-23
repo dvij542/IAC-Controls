@@ -11,14 +11,14 @@ def min_allowed_radius(vel):
     muy = (pars.pdy1 + pars.pdy2*dfz)*pars.road_coeff
     lateral_acc_max = muy*pars.gravity_constant*(1+dfz)
     radius = (vel**2)/lateral_acc_max
-    print(radius)
+    # print(radius)
     return radius
 
 ################# models.P ###########
 # Initial posx,posy and heading angle are 0
 # 0 : No of vehicles
 # 1,2,3,4,5,6 : Vi, Vf, C0, C1, C2 and C3 for cubic equation of reference line
-# 7,8 : Intial speed and steering angle
+# 7,8,-9,-10 : Intial speed, steering angle, perpendicular speed and yaw rate
 # (9,10,11,12), (13,14,15,16) ...... (9+4k,10+4k,11+4k,12+4k) : (x,y,velx,vely) for all the surrounding vehicles
 # (-8,-7,-6,-5) : Left lane boundary C0, C1, C2, C3
 # (-4,-3,-2,-1) : Right lane boundary C0, C1, C2, C3
@@ -179,11 +179,11 @@ for k in range (0,2*pars.N,2):
 for k in range (1,(2*pars.N),2):
     min_radius = min_allowed_radius(70)
     max_steering_angle = asin(pars.L/(min_radius)) * 9.9
-    print(max_steering_angle)
+    # print(max_steering_angle)
     max_steering_angle = min(math.pi,float(max_steering_angle))
     # print(max_steering_angle)
-    lbx[k]=-0.2#max_steering_angle
-    ubx[k]=0.2#max_steering_angle
+    lbx[k]=-3.14#max_steering_angle
+    ubx[k]=3.14#max_steering_angle
     # lbx[k] = -math.pi
     # ubx[k] = math.pi
     lbg[k] = -100

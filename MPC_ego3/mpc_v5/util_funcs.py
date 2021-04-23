@@ -27,7 +27,7 @@ def sigmoid(x) :
 
 
 def inside_region_2(px,py):
-    if py < -1144 and px < -240 :
+    if py < -1144 and px < -240 and py > -1470:
         return True
     return False
 

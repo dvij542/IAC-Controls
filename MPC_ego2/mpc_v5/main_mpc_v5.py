@@ -31,7 +31,7 @@ predicted_v = 0
 control_sample = np.zeros((2,pars.N))
 no_of_vehicles = 0
 
-def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth,opp_vehicle_detected,opp_vehicle_detected_state):
+def mpcCallback(no_of_vehicles, speed_perp, yaw_rate, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth,opp_vehicle_detected,opp_vehicle_detected_state):
     x_bot = 0
     y_bot = 0
     ####### Special regions ############
@@ -67,6 +67,7 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
     p=current_pose+curve+current_control
     for i in range(pars.max_no_of_vehicles) : 
         p = p+all_vehicles[i].tolist()
+    p = p + [speed_perp,yaw_rate]
     p = p+curve_l+curve_r
     mindist = 10000
     minindex = 0
@@ -255,6 +256,8 @@ with rti.open_connector(
     #Initialise
     curr_steering = 0
     curr_speed = 0
+    curr_speed_perp = 0
+    curr_yaw_rate = 0
     target_throttle = 0
     aggregate = 0
     nr_dist = 0
@@ -430,7 +433,9 @@ with rti.open_connector(
             slip_angle = data['slipAngle']
             curr_pedal = data['gasPedal']
             curr_gear = data['GearEngaged']
-            curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
+            curr_speed = vx#math.sqrt(vx*vx+vy*vy+vz*vz)
+            # curr_speed_perp = vy
+            # curr_yaw_rate = data['cdgSpeed_heading']
             print("Current State :",[px,py,angle_heading,curr_speed])
             print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
             print("Current gear :",curr_gear)
@@ -540,7 +545,7 @@ with rti.open_connector(
             print("Curve left : ", curve_l)
             print("Curve right : ", curve_r)
             print("Curve : ", curve)
-            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state))
+            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, curr_speed_perp, curr_yaw_rate, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state, ))
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
             out = {}

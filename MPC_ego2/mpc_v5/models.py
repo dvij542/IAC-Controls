@@ -12,7 +12,7 @@ v=SX.sym('v')
 vperp=SX.sym('vperp')
 w=SX.sym('w')
 n_states=6
-states=vertcat(x,y,theta,v,vper,w)
+states=vertcat(x,y,theta,v,vperp,w)
 
 #CONTROLS
 delta=SX.sym('delta')
@@ -25,7 +25,7 @@ xopp = SX.sym('xopp')
 yopp = SX.sym('yopp')
 targ=vertcat(xopp,yopp)
 U=SX.sym('U',n_controls,pars.N)
-P=SX.sym('P',9+4*pars.max_no_of_vehicles+8)
+P=SX.sym('P',9+4*pars.max_no_of_vehicles+10)
 X=SX.sym('X',n_states,(pars.N+1))
 opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
@@ -50,27 +50,28 @@ def calc_force_rx(c,v,x,y,xopp,yopp,vperp):
     return ((c>0)*calc_throttle_force(c,v)-wind_force+(c<0)*c)
 
 def calc_force_fy(w,v,vperp,delta):
-    alpha = -atan((w*pars.Lf + vperp)/v) + delta
-    fz = pars.fz0*pars.Lf/(pars.Lf+pars.Lr) + pars.lift_coeff_f*v**2
-    fz0 = pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
+    alpha = -atan((w*pars.Lf + vperp)/(v+0.001)) + delta/9.9
+    fz = pars.fz0*pars.Lr/(pars.Lf+pars.Lr) + pars.lift_coeff_f*v**2
+    fz0 = pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
     return utils.calc_force_from_slip_angle(alpha,fz,fz0)   
     
 
 def calc_force_ry(w,v,vperp):
-    alpha = atan((w*pars.Lr - vperp)/v)
-    fz = pars.fz0*pars.Lr/(pars.Lf+pars.Lr) + pars.lift_coeff_r*v**2
-    fz0 = pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
+    alpha = atan((w*pars.Lr - vperp)/(v+0.001))
+    fz = pars.fz0*pars.Lf/(pars.Lf+pars.Lr) + pars.lift_coeff_r*v**2
+    fz0 = pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
     return utils.calc_force_from_slip_angle(alpha,fz,fz0)   
 
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
-    [0,1]])
+    [0,0.1]])
 R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
-    [0,5]])
+    [0,0.5]])
 
+print(pars.moment_of_inertia)
 # UPDATE RULE
 rhs=[
-        v*cos(theta+((atan(tan(delta/pars.steering_ratio)))/2)) - vperp*sin(theta+((atan(tan(delta/pars.steering_ratio)))/2)),
-        v*sin(theta+((atan(tan(delta/pars.steering_ratio)))/2)) + vperp*cos(theta+((atan(tan(delta/pars.steering_ratio)))/2)),
+        v*cos(theta) - vperp*sin(theta),
+        v*sin(theta) + vperp*cos(theta),
         w,
         (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta)*sin(theta) + pars.mass*vperp*w)/pars.mass, # Including drafting
         (calc_force_ry(w,v,vperp) + calc_force_fy(w,v,vperp,delta)*cos(theta) - pars.mass*v*w)/pars.mass,
@@ -80,8 +81,10 @@ rhs=[
 rhs=vertcat(*rhs)
 f=Function('f',[states,controls,targ],[rhs])
 
-X[:-1,0]=0
-X[-1,0]=P[7]         
+X[:-3,0]=0
+X[-3,0]=P[7]   
+X[-2,0]=P[-9]
+X[-1,0]=P[-10]
 itr = SX.sym('I',pars.no_iters,pars.N)
 itr_l = SX.sym('Il',pars.no_iters,pars.N)
 itr_r = SX.sym('Ir',pars.no_iters,pars.N)
