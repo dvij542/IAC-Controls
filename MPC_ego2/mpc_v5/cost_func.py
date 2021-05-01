@@ -20,6 +20,9 @@ def min_allowed_radius(vel):
 # 1,2,3,4,5,6 : Vi, Vf, C0, C1, C2 and C3 for cubic equation of reference line
 # 7,8,-10,-9 : Intial speed, steering angle, perpendicular speed and yaw rate
 # (9,10,11,12), (13,14,15,16) ...... (9+4k,10+4k,11+4k,12+4k) : (x,y,velx,vely) for all the surrounding vehicles
+# -15 : lr_ratio
+# -14, -13 : Gl and Gr
+# -12, -11 : diff_f, diff_r
 # (-8,-7,-6,-5) : Left lane boundary C0, C1, C2, C3
 # (-4,-3,-2,-1) : Right lane boundary C0, C1, C2, C3
 
@@ -76,7 +79,7 @@ for k in range(0,pars.N,1):
         (st[1]-models.F_val_r[0,k])**2)**(1/2)*(2*(st[1]<models.F_val_r[0,k])-1)
     
     Radius = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))
-    models.R[0,0] = 1#Radius/(Radius - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
+    models.R[0,0] = Radius/(Radius - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
     models.g[0,k] =  0 #distance_l
     models.g[1,k] =  0 #distance_r
     models.pen[0,k] = distance_l + pars.tolerance
@@ -183,8 +186,8 @@ for k in range (1,(2*pars.N),2):
     # print(max_steering_angle)
     max_steering_angle = min(math.pi,float(max_steering_angle))
     # print(max_steering_angle)
-    lbx[k]=-3.14#max_steering_angle
-    ubx[k]=3.14#max_steering_angle
+    lbx[k]=-0.3#max_steering_angle
+    ubx[k]=0.3#max_steering_angle
     # lbx[k] = -math.pi
     # ubx[k] = math.pi
     lbg[k] = -100

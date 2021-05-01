@@ -25,7 +25,7 @@ xopp = SX.sym('xopp')
 yopp = SX.sym('yopp')
 targ=vertcat(xopp,yopp)
 U=SX.sym('U',n_controls,pars.N)
-P=SX.sym('P',9+4*pars.max_no_of_vehicles+10)
+P=SX.sym('P',9+4*pars.max_no_of_vehicles+5+10)
 X=SX.sym('X',n_states,(pars.N+1))
 opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
@@ -49,18 +49,22 @@ def calc_force_rx(c,v,x,y,xopp,yopp,vperp):
     wind_force = pars.air_resistance_const*v*v*(1 + (calc_drafting_coeff_drag(x,y,xopp,yopp)-1)*(v/pars.vmax))
     return ((c>0)*calc_throttle_force(c,v)-wind_force+(c<0)*c)
 
-def calc_force_fy(w,v,vperp,delta):
+def calc_force_fy(w,v,vperp,delta,lr_ratio,diff_f):
     alpha = -atan((w*pars.Lf + vperp)/(v)) + delta/pars.steering_ratio
     fz = pars.fz0*pars.Lr/(pars.Lf+pars.Lr) + pars.lift_coeff_f*v**2
-    fz0 = 4000#pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
-    return utils.calc_force_from_slip_angle(-alpha,fz,fz0)   
+    fz0 = 3114#pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
+    fzr = fz*(lr_ratio)/(lr_ratio + 1)
+    fzl = fz*(1)/(lr_ratio + 1)
+    return utils.calc_force_from_slip_angle(-alpha,fzl,fz0) + utils.calc_force_from_slip_angle(-alpha,fzr,fz0) + diff_f   
     
 
-def calc_force_ry(w,v,vperp):
+def calc_force_ry(w,v,vperp,lr_ratio,diff_r,Gl,Gr):
     alpha = atan((w*pars.Lr - vperp)/(v))
     fz = pars.fz0*pars.Lf/(pars.Lf+pars.Lr) + pars.lift_coeff_r*v**2
-    fz0 = 4000#pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
-    return utils.calc_force_from_slip_angle(-alpha,fz,fz0)   
+    fz0 = 3114#pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
+    fzr = fz*(lr_ratio)/(lr_ratio + 1)
+    fzl = fz*(1)/(lr_ratio + 1)
+    return Gl*utils.calc_force_from_slip_angle(-alpha,fzl,fz0) + Gr*utils.calc_force_from_slip_angle(-alpha,fzr,fz0) + diff_r   
 
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
     [0,0.1]])
@@ -73,9 +77,9 @@ rhs=[
         v*cos(theta) - vperp*sin(theta),
         v*sin(theta) + vperp*cos(theta),
         w,
-        (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta)*sin(delta/pars.steering_ratio) + pars.mass*vperp*w)/pars.mass, # Including drafting
-        (calc_force_ry(w,v,vperp) + calc_force_fy(w,v,vperp,delta)*cos(delta/pars.steering_ratio) - pars.mass*v*w)/pars.mass,
-        (calc_force_fy(w,v,vperp,delta)*pars.Lf*cos(delta/pars.steering_ratio) - calc_force_ry(w,v,vperp)*pars.Lr)/pars.moment_of_inertia
+        (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*sin(delta/pars.steering_ratio) + pars.mass*vperp*w)/pars.mass, # Including drafting
+        (calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13]) + calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*cos(delta/pars.steering_ratio) - pars.mass*v*w)/pars.mass,
+        (calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*pars.Lf*cos(delta/pars.steering_ratio) - calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13])*pars.Lr)/pars.moment_of_inertia
         # (c>=0)*calc_torque_from_gear_speed(car_speed_to_gear_speed(v),c)/(mass*get_gear_radii(v)) + (c<0)*c
     ]
 rhs=vertcat(*rhs)

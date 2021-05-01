@@ -33,6 +33,13 @@ rey2 = 0.01966
 rhy1 = 0.00667
 rhy2 = 0.00207
 
+rvy1 = 0.0426
+rvy2 = 0.03077
+rvy3 = 0.37305
+rvy4 = 100
+rvy5 = 2.2
+rvy6 = 25
+
 SC_REAR_RIGHT_EDGE = 0
 SC_REAR_LEFT_EDGE = 1
 SC_FRONT_RIGHT_EDGE = 2
@@ -72,7 +79,7 @@ def get_center_line(px,py,angle_heading) :
     c = -dist/cos(theta_diff)
     return [c,m,0,0] 
 
-def calc_force_from_slip_angle(slip_angle,fz,fz0):
+def get_gyk(slip_angle,fz,fz0,slip_ratio):
     epsilon = 0.000
     dfz = (fz-fz0)/fz0
     shy = phy1 + phy2*dfz
@@ -81,12 +88,78 @@ def calc_force_from_slip_angle(slip_angle,fz,fz0):
     muy = pdy1 + pdy2*dfz
     # print("muy :", muy)
     Dy = muy*fz
-    Ey = (pey1 + pey2*dfz)#*(1-pey4)
+    Ey = (pey1 + pey2*dfz)*(1+pey3*(2*(ky<0)-1))
     K = fz0*pky1*sin(2*atan(fz/(pky2*fz0)))#+pky2*dfz)#*exp(pky3*dfz)
     By=K/(Cy*Dy+epsilon)
     svy = fz*(pvy1+pvy2*dfz)
-    Fy = Dy*sin(Cy*atan(By*ky- Ey*(By*ky-atan(By*ky))))
-    return Fy
+    fy0 = (Dy*sin(Cy*atan(By*ky- Ey*(By*ky-atan(By*ky)))) + svy)
+    # return Fy
+
+    # const req rvy1, rvy2, rvy3,  rvy4,  rvy5, rvy6, lvyka, lyka
+    #variable req gamma(maybe 0), alpha(slip_angle), k(slip_ratio),
+    gamma = 0
+    Dvyk = muy*fz*(rvy1+rvy2*dfz+rvy3*gamma)*cos(atan(rvy4*slip_angle))
+    Svyk = Dvyk*sin(rvy5*atan(rvy6*slip_ratio))
+    Shyk = rhy1+rhy2*dfz
+    Eyk = rey1+rey2*dfz
+    Cyk = rcy1
+    Byk = rby1*cos(atan(rby2*(slip_angle-rby3)))
+    ks = slip_ratio+Shyk
+    Gyk0 = cos(Cyk*atan(Byk*Shyk-Eyk*(Byk*Shyk-atan(Byk*Shyk))))
+    Gyk = cos(Cyk*atan(Byk*ks-Eyk*(Byk*ks-atan(Byk*ks))))/Gyk0
+    print(Gyk,Svyk)
+    Fy = Gyk*fy0+Svyk
+    return Gyk
+
+def calc_force_from_slip_ratio(slip_angle,fz,fz0,slip_ratio):
+    epsilon = 0.000
+    dfz = (fz-fz0)/fz0
+    shy = phy1 + phy2*dfz
+    ky = slip_angle + shy
+    Cy = pcy1
+    muy = pdy1 + pdy2*dfz
+    # print("muy :", muy)
+    Dy = muy*fz
+    Ey = (pey1 + pey2*dfz)*(1+pey3*(2*(ky<0)-1))
+    K = fz0*pky1*sin(2*atan(fz/(pky2*fz0)))#+pky2*dfz)#*exp(pky3*dfz)
+    By=K/(Cy*Dy+epsilon)
+    svy = fz*(pvy1+pvy2*dfz)
+    fy0 = (Dy*sin(Cy*atan(By*ky- Ey*(By*ky-atan(By*ky)))) + svy)
+    # return Fy
+
+    # const req rvy1, rvy2, rvy3,  rvy4,  rvy5, rvy6, lvyka, lyka
+    #variable req gamma(maybe 0), alpha(slip_angle), k(slip_ratio),
+    gamma = 0
+    Dvyk = muy*fz*(rvy1+rvy2*dfz+rvy3*gamma)*cos(atan(rvy4*slip_angle))
+    Svyk = Dvyk*sin(rvy5*atan(rvy6*slip_ratio))
+    Shyk = rhy1+rhy2*dfz
+    Eyk = rey1+rey2*dfz
+    Cyk = rcy1
+    Byk = rby1*cos(atan(rby2*(slip_angle-rby3)))
+    ks = slip_ratio+Shyk
+    Gyk0 = cos(Cyk*atan(Byk*Shyk-Eyk*(Byk*Shyk-atan(Byk*Shyk))))
+    Gyk = cos(Cyk*atan(Byk*ks-Eyk*(Byk*ks-atan(Byk*ks))))/Gyk0
+    print(Gyk,Svyk)
+    Fy = Gyk*fy0+Svyk
+    return p.road_coeff*Fy
+
+def calc_force_from_slip_angle(slip_angle,fz,fz0):
+    epsilon = 0.000
+    dfz = (fz-fz0)/fz0
+    # dfz=0
+    shy = phy1 + phy2*dfz
+    ky = slip_angle + shy
+    Cy = pcy1
+    muy = pdy1 + pdy2*dfz
+    # print("muy :", muy)
+    Dy = muy*fz
+    Ey = (pey1 + pey2*dfz)*(1+pey3)
+    K = fz0*pky1*sin(2*atan(fz/(pky2*fz0)))#+pky2*dfz)#*exp(pky3*dfz)
+    By=K/(Cy*Dy+epsilon)
+    svy = fz*(pvy1+pvy2*dfz)
+    print(slip_angle,fz,dfz,By*ky)
+    Fy = Dy*sin(Cy*atan(By*ky - Ey*(By*ky-atan(By*ky)))) + svy
+    return p.road_coeff*Fy
 
 def calc_force_from_slip(slip,speed) :
     fz = p.fz0 + p.lift_coeff*speed**2
