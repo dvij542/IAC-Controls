@@ -50,22 +50,22 @@ def calc_force_rx(c,v,x,y,xopp,yopp,vperp):
     return ((c>0)*calc_throttle_force(c,v)-wind_force+(c<0)*c)
 
 def calc_force_fy(w,v,vperp,delta):
-    alpha = -atan((w*pars.Lf + vperp)/(v+0.001)) + delta/9.9
+    alpha = -atan((w*pars.Lf + vperp)/(v)) + delta/pars.steering_ratio
     fz = pars.fz0*pars.Lr/(pars.Lf+pars.Lr) + pars.lift_coeff_f*v**2
-    fz0 = pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
-    return utils.calc_force_from_slip_angle(alpha,fz,fz0)   
+    fz0 = 4000#pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
+    return utils.calc_force_from_slip_angle(-alpha,fz,fz0)   
     
 
 def calc_force_ry(w,v,vperp):
-    alpha = atan((w*pars.Lr - vperp)/(v+0.001))
+    alpha = atan((w*pars.Lr - vperp)/(v))
     fz = pars.fz0*pars.Lf/(pars.Lf+pars.Lr) + pars.lift_coeff_r*v**2
-    fz0 = pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
-    return utils.calc_force_from_slip_angle(alpha,fz,fz0)   
+    fz0 = 4000#pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
+    return utils.calc_force_from_slip_angle(-alpha,fz,fz0)   
 
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
     [0,0.1]])
-R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
-    [0,0.5]])
+R2=SX([[2,0],   # Weights for rate of change of speed and steering angle
+    [0,500]])
 
 print(pars.moment_of_inertia)
 # UPDATE RULE
@@ -73,9 +73,9 @@ rhs=[
         v*cos(theta) - vperp*sin(theta),
         v*sin(theta) + vperp*cos(theta),
         w,
-        (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta)*sin(theta) + pars.mass*vperp*w)/pars.mass, # Including drafting
-        (calc_force_ry(w,v,vperp) + calc_force_fy(w,v,vperp,delta)*cos(theta) - pars.mass*v*w)/pars.mass,
-        (calc_force_fy(w,v,vperp,delta)*pars.Lf*cos(theta) - calc_force_ry(w,v,vperp)*pars.Lr)/pars.moment_of_inertia
+        (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta)*sin(delta/pars.steering_ratio) + pars.mass*vperp*w)/pars.mass, # Including drafting
+        (calc_force_ry(w,v,vperp) + calc_force_fy(w,v,vperp,delta)*cos(delta/pars.steering_ratio) - pars.mass*v*w)/pars.mass,
+        (calc_force_fy(w,v,vperp,delta)*pars.Lf*cos(delta/pars.steering_ratio) - calc_force_ry(w,v,vperp)*pars.Lr)/pars.moment_of_inertia
         # (c>=0)*calc_torque_from_gear_speed(car_speed_to_gear_speed(v),c)/(mass*get_gear_radii(v)) + (c<0)*c
     ]
 rhs=vertcat(*rhs)
@@ -83,8 +83,8 @@ f=Function('f',[states,controls,targ],[rhs])
 
 X[:-3,0]=0
 X[-3,0]=P[7]   
-X[-2,0]=P[-9]
-X[-1,0]=P[-10]
+X[-2,0]=P[-10]
+X[-1,0]=P[-9]
 itr = SX.sym('I',pars.no_iters,pars.N)
 itr_l = SX.sym('Il',pars.no_iters,pars.N)
 itr_r = SX.sym('Ir',pars.no_iters,pars.N)

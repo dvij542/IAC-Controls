@@ -2,6 +2,7 @@ import states
 from casadi import *
 import params as p
 import math
+from casadi import *
 
 SC_REAR_RIGHT_EDGE = 0
 SC_REAR_LEFT_EDGE = 1
@@ -22,7 +23,26 @@ SC_UNKNOWN_RIGHT_FACE_REAR = 15
 SC_UNKNOWN_LEFT_FACE_REAR = 16
 
 def sigmoid(x) :
-    return SX.exp(x)/(SX.exp(x)+1)
+    return if_else(x<0,SX.exp(x)/(SX.exp(x)+1),1/(SX.exp(-x)+1)) 
+
+
+def inside_region_2(px,py):
+    if py < -1144 and px < -240 and py > -1470:
+        return True
+    return False
+
+def get_center_line(px,py,angle_heading) :
+    X1 = -315
+    Y1 = -1151
+    X2 = -309
+    Y2 = -1454
+    theta = atan2(Y2-Y1,X2-X1)
+    theta_diff = angle_heading - theta
+    m = -tan(theta_diff)
+    M = (Y2-Y1)/(X2-X1)
+    dist = ((py-Y1)-M*(px-X1))/sqrt(1+M**2)
+    c = -dist/cos(theta_diff)
+    return [c,m,0,0] 
 
 def calc_force_from_slip(slip,speed) :
     fz = p.fz0 + p.lift_coeff*speed**2
@@ -159,3 +179,9 @@ def anchorPointToCenter(x,y,t,no) :
     xdd = xd*math.cos(t) - yd*math.sin(t)
     ydd = xd*math.sin(t) + yd*math.cos(t)
     return x + xdd, y + ydd
+
+def under_ll_turn(x,y):
+    if y<-2120 and x<-258 :
+        return True
+    else :
+        return False

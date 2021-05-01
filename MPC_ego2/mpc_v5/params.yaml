@@ -4,22 +4,22 @@ parameters:
   start_throttle: 1 # Throttle to give at start
   start_speed: 10 # Speed in m/s to give start_throttle
   steering_ratio: 10 # Ratio of Steering angle to wheel angle  
-  moment_of_inertia: 614.6255843280001 # Moment of inertia about the COM z axis
+  moment_of_inertia: 504.7015 # Moment of inertia about the COM z axis
   L: 2.9 # Length of vehicle
-  Lf: 1.7 # Distance of COM from front axle
-  Lr: 1.2 # Distance of COM from rear axle
+  Lf: 1.66 # Distance of COM from front axle
+  Lr: 1.24 # Distance of COM from rear axle
 
   vmax: 83.3
   road_coeff: 0.8
   vehicle_length_r: 2 # Vehicle distance to perform blocking maneuver 
   blocking_maneuver_cost: 0
   air_resistance_const: 0.43
-  mass: 720 # in Kg
+  mass: 591.23 # in Kg
   tolerance: 1 # Tolerance distance to keep from left and right lane boundaries
   Q_ang: 10 # Cost on angle difference from racing line
   k_lat_slip: 0.1 # Cost on lateral slip
   k_vel_follow: 3 # To follow the speed given by the racing line if current speed is greater than required speed
-  save_path_after: -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+  save_path_after: 1000 # Save path after these no of iterations for visualization, -1 if path is not to be saved
   file_path_follow: ./glob_racing_line.txt  # File to read the global reference line, if None then centre line will be taken
   file_new_path: ./test.txt # File in which the new coordinates will be saved
   Q_along: 6  # Weight for progress along the road
@@ -45,9 +45,9 @@ parameters:
   ki_start: 0.05
   kd_start: 1.5
   I_start: 1
-  lift_coeff: 1.0655
-  lift_coeff_r: 1.0655*0.912/(0.912+0.483)
-  lift_coeff_f: 1.0655*0.483/(0.912+0.483)
+  lift_coeff: 1.0654835625000003
+  lift_coeff_r: 1.0654835625000003*0.912/(0.912+0.483)
+  lift_coeff_f: 1.0654835625000003*0.483/(0.912+0.483)
   gravity_constant: 9.8
   pdy1: 1.654
   pdy2: -0.1783

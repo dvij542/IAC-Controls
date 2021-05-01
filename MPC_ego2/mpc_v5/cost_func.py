@@ -18,7 +18,7 @@ def min_allowed_radius(vel):
 # Initial posx,posy and heading angle are 0
 # 0 : No of vehicles
 # 1,2,3,4,5,6 : Vi, Vf, C0, C1, C2 and C3 for cubic equation of reference line
-# 7,8,-9,-10 : Intial speed, steering angle, perpendicular speed and yaw rate
+# 7,8,-10,-9 : Intial speed, steering angle, perpendicular speed and yaw rate
 # (9,10,11,12), (13,14,15,16) ...... (9+4k,10+4k,11+4k,12+4k) : (x,y,velx,vely) for all the surrounding vehicles
 # (-8,-7,-6,-5) : Left lane boundary C0, C1, C2, C3
 # (-4,-3,-2,-1) : Right lane boundary C0, C1, C2, C3
@@ -141,11 +141,12 @@ for k in range(0,pars.N-1,1):
 
 opt_variables=vertcat(models.U)
 OPT_variables = reshape(models.U,2*pars.N,1)
-g_func = reshape(models.g,2*pars.N+4,1)  
+states = reshape(models.X,6*(pars.N+1),1)
+g_func = vertcat(reshape(models.g,2*pars.N+4,1),states)  
 nlp_prob = {'f': models.obj, 'x':OPT_variables, 'p': models.P,'g':g_func}
 options = {
             'ipopt.print_level' : 0,
-            'ipopt.max_iter' : 500,
+            'ipopt.max_iter' : 2000,
             'ipopt.mu_init' : 0.01,
             'ipopt.tol' : 1e-8,
             'ipopt.warm_start_init_point' : 'yes',
@@ -163,8 +164,8 @@ solver=nlpsol("solver","ipopt",nlp_prob,options)
 
 lbx=np.zeros(2*pars.N)
 ubx=np.zeros(2*pars.N)
-lbg=np.zeros(2*(pars.N+2))
-ubg=np.zeros(2*pars.N+4)
+lbg=np.zeros(2*(pars.N+2) + 6*(pars.N + 1))
+ubg=np.zeros(2*pars.N+4+ 6*(pars.N + 1))
 
 for k in range (0,2*pars.N,2): 
     lbx[k]=-720*30
@@ -191,10 +192,12 @@ for k in range (1,(2*pars.N),2):
     #if k>pars.N//4:
     #   ubg[k]=0
 
+lbg[2*pars.N+4:] = -100000
 lbg[2*pars.N] = -100000
 lbg[2*pars.N+1] = -100000
 lbg[2*pars.N+2] = -100000
 lbg[2*pars.N+3] = -100000
+ubg[2*pars.N+4:] = 100000
 ubg[2*pars.N] = 100000
 ubg[2*pars.N+1] = 100000
 ubg[2*pars.N+2] = 100000

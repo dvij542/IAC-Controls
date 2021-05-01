@@ -203,6 +203,8 @@ def mpcCallback(no_of_vehicles, speed_perp, yaw_rate, trajectory_to_follow, spee
         u = reshape(x.T,2,pars.N).T      
         ctrlmsg = u[:,1]
         speed_output = u[:,0]
+        print("Steering angles :", ctrlmsg)
+        print("Throttle outputs :",speed_output)
         return ctrlmsg, speed_output
             
     control_sample[0,:] = 1
@@ -216,13 +218,18 @@ def mpcCallback(no_of_vehicles, speed_perp, yaw_rate, trajectory_to_follow, spee
     print("no vehicle detected. Reseting all opp_vehichle_detected_state to 0.")
     x=so['x']
     g=so['g']
+    s=so['g'][2*pars.N+4:]
     predicted_x = g[2*pars.N]
     predicted_y = g[2*pars.N+1]
     predicted_theta = g[2*pars.N+2]
     predicted_v = g[2*pars.N+3]
     u = reshape(x.T,2,pars.N).T
     ctrlmsg = u[:,1]
+    states = reshape(s.T,6,pars.N+1).T
     control_output = u[:,0]
+    print("Steering angles :", ctrlmsg)
+    print("Throttle outputs :",control_output)
+    print("States :", states)
     return ctrlmsg, control_output
 
 
@@ -252,6 +259,9 @@ with rti.open_connector(
     
     # Read data from the input, transform it and write it into the output
     print("Waiting for data...")
+    for slip in np.arange(0.0,0.1,0.0001) :
+        print(utils.calc_force_from_slip_angle(slip,6500,3500))
+    # print(utils.calc_force_from_slip_angle(-0.004902364341215198,6500,3500))
     radius_of_curvature = 10000
     #Initialise
     curr_steering = 0
@@ -426,25 +436,39 @@ with rti.open_connector(
             px = data['cdgPos_x']  
             py = data['cdgPos_y']  
             lsr = data['LSR']
+            
+            slip_angle = data['slipAngle']
             curr_engine_speed = data['EngineSpeed']
             forcex = data['tireForce_x']
-            normalz = data['groundNormal_z']
+            forcey = data['tireForce_y']
+            normalz = data['tireForce_z']
             angle_heading = data['cdgPos_heading']
             slip_angle = data['slipAngle']
             curr_pedal = data['gasPedal']
             curr_gear = data['GearEngaged']
             curr_speed = vx#math.sqrt(vx*vx+vy*vy+vz*vz)
-            # curr_speed_perp = vy
-            # curr_yaw_rate = data['cdgSpeed_heading']
+            curr_speed_perp = vy
+            gt_steering = data['SteeringWheelAngle']
+            curr_yaw_rate = data['cdgSpeed_heading']
+            print("Normal forces :", normalz)
             print("Current State :",[px,py,angle_heading,curr_speed])
-            print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
+            # print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
+            print("GT Force y :", forcey)
+            print("GT derived force y:", utils.calc_force_from_slip_angle(slip_angle[0],normalz[0],4000) \
+                , utils.calc_force_from_slip_angle(slip_angle[1],normalz[1],4000) \
+                , utils.calc_force_from_slip_angle(slip_angle[2],normalz[2],4000) \
+                , utils.calc_force_from_slip_angle(slip_angle[3],normalz[3],4000))
             print("Current gear :",curr_gear)
             print("Current engine speed :",curr_engine_speed)
             print(pars.gear_change_engine_thres)
+            print("GT slip angle :", slip_angle)
+            rear_slip_angle = atan((curr_yaw_rate*pars.Lr - vy)/(vx))
+            front_slip_angle = -atan((curr_yaw_rate*pars.Lf + vy)/(vx)) + gt_steering/pars.steering_ratio
+            print("Predicted slip angle :" , rear_slip_angle, front_slip_angle)
             if curr_engine_speed > pars.gear_change_engine_thres and (curr_gear+1>required_gear):
                 required_gear = curr_gear + 1
             print("Required gear :",required_gear)
-            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3],throttle,curr_engine_speed,curr_gear])
+            traj_followed.append([px,py,curr_speed,curr_speed_perp,curr_yaw_rate,curr_steering,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],throttle,curr_engine_speed,curr_gear])
             print("Current Speed : ", curr_speed)
 
         for l in range(no_of_vehicles):
@@ -568,9 +592,9 @@ with rti.open_connector(
                 target_throttle = -720*30
             if curr_speed > 83 :
                 target_throttle = (306.3*5/18) - curr_speed
-            out['AcceleratorAdditive'] = max(0,target_throttle)
+            out['AcceleratorAdditive'] = 0#max(0,target_throttle)
             out['AcceleratorMultiplicative'] = 0
-            out['BrakeAdditive'] = -min(0,target_throttle)
+            out['BrakeAdditive'] = 0#-min(0,target_throttle)
             out['BrakeMultiplicative'] = 0
             out['ClutchAdditive'] = 0
             out['ClutchMultiplicative'] = 0

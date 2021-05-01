@@ -13,24 +13,29 @@ parameters:
   tolerance: 1 # Tolerance distance to keep from left and right lane boundaries
   Q_ang: 10 # Cost on angle difference from racing line
   k_lat_slip: 0.1 # Cost on lateral slip
-  k_vel_follow: 0 # To follow the speed given by the racing line if current speed is greater than required speed
-  save_path_after: 1000 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+  k_vel_follow: 3 # To follow the speed given by the racing line if current speed is greater than required speed
+  save_path_after: -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
   file_path_follow: ./glob_racing_line.txt  # File to read the global reference line, if None then centre line will be taken
   file_new_path: ./test.txt # File in which the new coordinates will be saved
   Q_along: 6  # Weight for progress along the road
+  Q_drafting: 0.5 # Weight for aligning ego vehicle towards the back of other vehicle 
   Q_dist: 0  # Weight for distance for the center of the road
+  Q_steering_over_limit: 0
   penalty_out_of_road: 6 # Penalise for planning path outside the road
   no_iters: 3
   max_no_of_vehicles: 4
   
+  drafting_dist_x: 7
+  drafting_dist_y: 3
   T: .04 # Time horizon
   N: 20 # Number of control intervals
   kp: 1 # For PID controller
-  obs_dist: 60 # To maintain from other vehicles at each time step
+  obs_dist: 90 # To maintain from other vehicles at each time step
   ki: 0
   kd: 0
   threshold: 20000
-  dist_threshold: 2
+  default_lane_width: 16
+  dist_threshold: 10
   kp_start: 2
   ki_start: 0.05
   kd_start: 1.5
@@ -42,7 +47,6 @@ parameters:
   pdy1: 1.654
   pdy2: -0.1783
   fz0: 7056
-
   epsilon: 0
   L: 2.9
   W: 2

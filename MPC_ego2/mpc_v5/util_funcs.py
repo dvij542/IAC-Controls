@@ -73,18 +73,19 @@ def get_center_line(px,py,angle_heading) :
     return [c,m,0,0] 
 
 def calc_force_from_slip_angle(slip_angle,fz,fz0):
-    epsilon = 0.0001
+    epsilon = 0.000
     dfz = (fz-fz0)/fz0
     shy = phy1 + phy2*dfz
-    ky = slip_angle 
+    ky = slip_angle + shy
     Cy = pcy1
     muy = pdy1 + pdy2*dfz
+    # print("muy :", muy)
     Dy = muy*fz
-    Ey = (pey1 + pey2*dfz + pey3*dfz**2)*(1-pey4)
-    K = fz*(pky1+pky2*dfz)#*exp(pky3*dfz)
+    Ey = (pey1 + pey2*dfz)#*(1-pey4)
+    K = fz0*pky1*sin(2*atan(fz/(pky2*fz0)))#+pky2*dfz)#*exp(pky3*dfz)
     By=K/(Cy*Dy+epsilon)
-    svy = fz*(pvy1+pvy2*dfz+pvy3*dfz**2+pvy4*dfz**3)
-    Fy = Dy*sin(Cy*atan(By*ky - Ey*(By*ky-atan(By*ky))))
+    svy = fz*(pvy1+pvy2*dfz)
+    Fy = Dy*sin(Cy*atan(By*ky- Ey*(By*ky-atan(By*ky))))
     return Fy
 
 def calc_force_from_slip(slip,speed) :
@@ -128,8 +129,8 @@ def calc_torque_from_gear_speed(gear_speed,curr_c):
                 [-9.5,1.9,3.8,9.5,11.4,20.9,28.5,34.2,38,47.5,51.3],
                 [-11.4,3.8,7.6,13.3,15.2,22.8,30.4,36.1,39.9,49.4,51.11],
                 [-13.3,1.9,11.4,17.1,19,26.6,34.2,38,43.7,51.3,52.25],
-    
-                [-17.1,1.9,11.4,17.1,19,26.6,34.2,38,43.7,51.3,52.25],            [-15.2,3.8,15.2,19,20.9,28.5,36.1,39.9,44.65,52.25,53.01],
+                [-17.1,1.9,11.4,17.1,19,26.6,34.2,38,43.7,51.3,52.25],            
+                [-15.2,3.8,15.2,19,20.9,28.5,36.1,39.9,44.65,52.25,53.01],
                 [-19,0,7.6,13.3,15.2,22.8,30.4,36.1,39.9,48.45,51.3],
                 [-22.8,-3.8,3.8,9.5,11.4,19,28.5,32.3,38,47.5,50.16],
                 [-24.7,-5.7,1.9,7.6,9.5,15.2,24.7,28.5,34.2,45.6,49.02],
