@@ -243,7 +243,7 @@ def detect_anomaly(vehicles, no_of_vehicles) :
 required_gear = 1
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
-        url=file_path + "/../../Sensors_ego2.xml") as connector:
+        url=file_path + "/../../Sensors_ego"+str(pars.ego_id)+".xml") as connector:
 
     input1 = connector.get_input("roadSubscriber::roadReader1")
     input2 = connector.get_input("roadSubscriber::roadReader2")
@@ -260,7 +260,7 @@ with rti.open_connector(
     # Read data from the input, transform it and write it into the output
     print("Waiting for data...")
     # for slip in np.arange(0.0,0.1,0.0001) :
-    print(utils.calc_force_from_slip_ratio(-0.05894731781384008,1430.7368765527035,3114,-1.0912234237664978e-05))
+    # print(utils.calc_force_from_slip_ratio(-0.05894731781384008,1430.7368765527035,3114,-1.0912234237664978e-05))
     # print(utils.calc_force_from_slip_angle(-0.004902364341215198,6500,3500))
     radius_of_curvature = 10000
     #Initialise

@@ -31,6 +31,7 @@ penalty_out_of_road = params['parameters']['penalty_out_of_road']
 no_iters = params['parameters']['no_iters']
 max_no_of_vehicles = params['parameters']['max_no_of_vehicles']
 
+ego_id = params['parameters']['ego_id']
 Q_drafting = params['parameters']['Q_drafting']
 drafting_dist_x = params['parameters']['drafting_dist_x']
 drafting_dist_y = params['parameters']['drafting_dist_y']
