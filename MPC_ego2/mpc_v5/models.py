@@ -25,7 +25,7 @@ xopp = SX.sym('xopp')
 yopp = SX.sym('yopp')
 targ=vertcat(xopp,yopp)
 U=SX.sym('U',n_controls,pars.N)
-P=SX.sym('P',9+4*pars.max_no_of_vehicles+5+10)
+P=SX.sym('P',9+4*pars.max_no_of_vehicles+6+10)
 X=SX.sym('X',n_states,(pars.N+1))
 opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
@@ -69,7 +69,7 @@ def calc_force_ry(w,v,vperp,lr_ratio,diff_r,Gl,Gr):
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
     [0,0.1]])
 R2=SX([[2,0],   # Weights for rate of change of speed and steering angle
-    [0,500]])
+    [0,50]])
 
 print(pars.moment_of_inertia)
 # UPDATE RULE
@@ -79,7 +79,7 @@ rhs=[
         w,
         (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*sin(delta/pars.steering_ratio) + pars.mass*vperp*w)/pars.mass, # Including drafting
         (calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13]) + calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*cos(delta/pars.steering_ratio) - pars.mass*v*w)/pars.mass,
-        (calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*pars.Lf*cos(delta/pars.steering_ratio) - calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13])*pars.Lr)/pars.moment_of_inertia
+        (P[-16]+calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*pars.Lf*cos(delta/pars.steering_ratio) - calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13])*pars.Lr)/pars.moment_of_inertia
         # (c>=0)*calc_torque_from_gear_speed(car_speed_to_gear_speed(v),c)/(mass*get_gear_radii(v)) + (c<0)*c
     ]
 rhs=vertcat(*rhs)

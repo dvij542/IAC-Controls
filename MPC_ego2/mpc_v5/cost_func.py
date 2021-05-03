@@ -20,6 +20,7 @@ def min_allowed_radius(vel):
 # 1,2,3,4,5,6 : Vi, Vf, C0, C1, C2 and C3 for cubic equation of reference line
 # 7,8,-10,-9 : Intial speed, steering angle, perpendicular speed and yaw rate
 # (9,10,11,12), (13,14,15,16) ...... (9+4k,10+4k,11+4k,12+4k) : (x,y,velx,vely) for all the surrounding vehicles
+# -16 : diff_torque
 # -15 : lr_ratio
 # -14, -13 : Gl and Gr
 # -12, -11 : diff_f, diff_r
@@ -84,10 +85,12 @@ for k in range(0,pars.N,1):
     models.g[1,k] =  0 #distance_r
     models.pen[0,k] = distance_l + pars.tolerance
     models.pen[1,k] = distance_r + pars.tolerance
-    models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
+    models.obj = models.obj + pars.penalty_out_of_road*\
         utils.sigmoid(10*models.pen[0,k])*models.pen[0,k]**2 # Penalise for going out of left lane
-    models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
-        utils.sigmoid(10*models.pen[1,k])*models.pen[1,k]**2 # Penalise for going out of right lane
+    # models.obj = models.obj + pars.penalty_out_of_road*(models.P[0]<10)*\
+    #     utils.sigmoid(10*models.pen[1,k])*models.pen[1,k]**2 # Penalise for going out of right lane
+    models.obj = models.obj + pars.penalty_out_of_road*\
+        exp(models.pen[1,k]) # Penalise for going out of right lane
     
     dFz = pars.lift_coeff*st[3]**2
     dfz = dFz/pars.fz0
@@ -97,8 +100,8 @@ for k in range(0,pars.N,1):
     # Penalty for lateral slip
     lateral_acc_max = muy*pars.gravity_constant*(1+dfz)
     lateral_acc_req = (st[3]**2)/Radius
-    models.obj = models.obj + pars.k_lat_slip*utils.sigmoid(10*(lateral_acc_req-lateral_acc_max))*\
-        (lateral_acc_max - lateral_acc_req)**2
+    # models.obj = models.obj + pars.k_lat_slip*utils.sigmoid(10*(lateral_acc_req-lateral_acc_max))*\
+    #     (lateral_acc_max - lateral_acc_req)**2
     min_radius = min_allowed_radius(st[3])
     max_steering_angle = asin(pars.L/(2*min_radius)) * 9
     models.obj = models.obj + utils.sigmoid(10*(models.U[1,k]-max_steering_angle))*utils.sigmoid(-10*(models.U[1,k]+max_steering_angle))*\
@@ -129,10 +132,11 @@ for k in range(0,pars.N,1):
             models.other_vehicle_v[t,k]*sin(models.other_vehicle_t[t,k])*pars.T
         models.other_vehicle_v[t,k+1] = models.other_vehicle_v[t,k]
     models.obj = models.obj + pars.Q_ang*(atan(models.F_dash[0,k])-st[2])**2
-    models.obj = models.obj - (1-utils.sigmoid(10*(lateral_acc_req-lateral_acc_max)))*\
+    required_val = Vi + (k+1)*(Vf-Vi)/pars.N + 15
+    # utils.sigmoid(-st[3]+required_val)
+    models.obj = models.obj - \
         pars.Q_along*st[3]*cos(atan(models.F_dash[0,k])-st[2])*models.R[0,0]/3 # To move along the lane 
-    required_val = Vi + (k+1)*(Vf-Vi)/pars.N + 10
-    models.obj = models.obj + (utils.sigmoid(10*(st[3]-required_val))*pars.k_vel_follow*(required_val-st[3])**2)/25 # Cost for speed difference from optimal racing line speeed
+    models.obj = models.obj + pars.k_vel_follow*(required_val-st[3])**2/25 # Cost for speed difference from optimal racing line speeed
     models.obj = models.obj + (pars.Q_dist*(models.P[3]+models.P[4]*st[0]+models.P[5]*st[0]*st[0]\
         +models.P[6]*st[0]*st[0]*st[0]-st[1])**2)/25 # Distance from the center lane
     models.obj = models.obj + con.T@models.R1@con # Penalise for more steering angle

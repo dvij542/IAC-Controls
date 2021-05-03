@@ -59,7 +59,8 @@ SC_UNKNOWN_RIGHT_FACE_REAR = 15
 SC_UNKNOWN_LEFT_FACE_REAR = 16
 
 def sigmoid(x) :
-    return if_else(x<0,SX.exp(x)/(SX.exp(x)+1),1/(SX.exp(-x)+1)) 
+    # return if_else(x<0,SX.exp(x)/(SX.exp(x)+1),1/(SX.exp(-x)+1)) 
+    return SX.exp(x)/(SX.exp(x)+1) 
 
 def inside_region_2(px,py):
     if py < -1144 and px < -240 and py > -1470:
@@ -107,7 +108,7 @@ def get_gyk(slip_angle,fz,fz0,slip_ratio):
     ks = slip_ratio+Shyk
     Gyk0 = cos(Cyk*atan(Byk*Shyk-Eyk*(Byk*Shyk-atan(Byk*Shyk))))
     Gyk = cos(Cyk*atan(Byk*ks-Eyk*(Byk*ks-atan(Byk*ks))))/Gyk0
-    print(Gyk,Svyk)
+    # print(Gyk,Svyk)
     Fy = Gyk*fy0+Svyk
     return Gyk
 
@@ -139,7 +140,7 @@ def calc_force_from_slip_ratio(slip_angle,fz,fz0,slip_ratio):
     ks = slip_ratio+Shyk
     Gyk0 = cos(Cyk*atan(Byk*Shyk-Eyk*(Byk*Shyk-atan(Byk*Shyk))))
     Gyk = cos(Cyk*atan(Byk*ks-Eyk*(Byk*ks-atan(Byk*ks))))/Gyk0
-    print(Gyk,Svyk)
+    # print(Gyk,Svyk)
     Fy = Gyk*fy0+Svyk
     return p.road_coeff*Fy
 

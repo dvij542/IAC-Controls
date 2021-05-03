@@ -162,10 +162,10 @@ def mpcCallback(no_of_vehicles, correction_params, speed_perp, yaw_rate, traject
         #cf for prev_path . If prev path = 1 , rightis prefereed. If prev path = 2 - left is preferred
 
         x = 0
-        if curve_l[0]<3 :
-            costl = costl + 10000
-        if curve_r[0]>-3 :
-            costr = costr + 10000
+        # if curve_l[0]<3 :
+        #     costl = costl + 10000
+        # if curve_r[0]>-3 :
+        #     costr = costr + 10000
         if(costr<=costl):
             x = sr['x']
             opp_vehicle_detected_state[opp_target_id] = 1
@@ -433,6 +433,7 @@ with rti.open_connector(
         diff_f = 0
         diff_r = 0
         lr_ratio = 0
+        diff_torque = 0
         for sample in input_speed.samples.valid_data_iter:
             data = sample.get_dictionary()
             vx = data['cdgSpeed_x']
@@ -449,6 +450,7 @@ with rti.open_connector(
             normalz = data['tireForce_z']
             angle_heading = data['cdgPos_heading']
             slip_angle = data['slipAngle']
+            omega_dot = data['cdgAccel_heading']
             curr_pedal = data['gasPedal']
             curr_gear = data['GearEngaged']
             curr_speed = vx#math.sqrt(vx*vx+vy*vy+vz*vz)
@@ -457,6 +459,9 @@ with rti.open_connector(
             curr_yaw_rate = data['cdgSpeed_heading']
             print("Normal forces :", normalz)
             print("Current State :",[px,py,angle_heading,curr_speed])
+            print("GT torque : ",omega_dot*pars.moment_of_inertia)
+            print("Expected torque : ", (forcey[0]+forcey[1])*pars.Lf - (forcey[2]+forcey[3])*pars.Lr)
+            diff_torque = omega_dot*pars.moment_of_inertia - ((forcey[0]+forcey[1])*pars.Lf - (forcey[2]+forcey[3])*pars.Lr)
             # print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
             print("LSR :", lsr)
             print("GT Force y :", forcey)
@@ -465,7 +470,8 @@ with rti.open_connector(
                 , utils.calc_force_from_slip_ratio(slip_angle[2],normalz[2],3114,lsr[2]) \
                 , utils.calc_force_from_slip_ratio(slip_angle[3],normalz[3],3114,lsr[3]))
             gyl = utils.get_gyk(slip_angle[2],normalz[2],3114,lsr[2])
-            gyr = utils.get_gyk(slip_angle[2],normalz[2],3114,lsr[2])
+            gyr = utils.get_gyk(slip_angle[3],normalz[3],3114,lsr[3])
+            print("GRL and GYR :",gyl,gyr)
             lr_ratio = forcey[1]/forcey[0]
             diff_f = forcey[1] - utils.calc_force_from_slip_ratio(slip_angle[1],normalz[1],3114,lsr[1])
             diff_r = forcey[3] - utils.calc_force_from_slip_ratio(slip_angle[3],normalz[3],3114,lsr[3])
@@ -565,7 +571,7 @@ with rti.open_connector(
             curve_r = [(lr1['c0']+lr2['c0'])/2,(lr1['c1']+lr2['c1'])/2,(lr1['c2']+lr2['c2'])/2,(lr1['c3']+lr2['c3'])/2]
             if utils.under_ll_turn(px,py) :
                 curve_l[0] = curve_r[0] + pars.default_lane_width*sqrt(1+curve_r[1]**2)
-            curve_r[0] = curve_r[0] + 1*sqrt(1+curve_r[1]**2)
+            curve_r[0] = curve_r[0] + 1.5*sqrt(1+curve_r[1]**2)
             curve = [c0,c1,c2,c3]
             if utils.inside_region_2(px,py) :
                 curve = utils.get_center_line(px,py,angle_heading)
@@ -580,7 +586,7 @@ with rti.open_connector(
             print("Curve left : ", curve_l)
             print("Curve right : ", curve_r)
             print("Curve : ", curve)
-            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, [lr_ratio,gyl,gyr,diff_f,diff_r], curr_speed_perp, curr_yaw_rate, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state, ))
+            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, [diff_torque,lr_ratio,gyl,gyr,diff_f,diff_r], curr_speed_perp, curr_yaw_rate, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state, ))
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
             out = {}
