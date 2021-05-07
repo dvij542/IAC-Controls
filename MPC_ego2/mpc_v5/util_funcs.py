@@ -144,7 +144,7 @@ def calc_force_from_slip_ratio(slip_angle,fz,fz0,slip_ratio):
     Fy = Gyk*fy0+Svyk
     return p.road_coeff*Fy
 
-def calc_force_from_slip_angle(slip_angle,fz,fz0):
+def calc_force_from_slip_angle(slip_angle,fz,fz0,curr_road_coeff):
     epsilon = 0.000
     dfz = (fz-fz0)/fz0
     # dfz=0
@@ -158,9 +158,9 @@ def calc_force_from_slip_angle(slip_angle,fz,fz0):
     K = fz0*pky1*sin(2*atan(fz/(pky2*fz0)))#+pky2*dfz)#*exp(pky3*dfz)
     By=K/(Cy*Dy+epsilon)
     svy = fz*(pvy1+pvy2*dfz)
-    print(slip_angle,fz,dfz,By*ky)
+    # print(slip_angle,fz,dfz,By*ky)
     Fy = Dy*sin(Cy*atan(By*ky - Ey*(By*ky-atan(By*ky)))) + svy
-    return p.road_coeff*Fy
+    return curr_road_coeff*Fy
 
 def calc_force_from_slip(slip,speed) :
     fz = p.fz0 + p.lift_coeff*speed**2

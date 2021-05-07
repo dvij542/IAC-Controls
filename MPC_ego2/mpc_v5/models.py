@@ -25,7 +25,7 @@ xopp = SX.sym('xopp')
 yopp = SX.sym('yopp')
 targ=vertcat(xopp,yopp)
 U=SX.sym('U',n_controls,pars.N)
-P=SX.sym('P',9+4*pars.max_no_of_vehicles+6+10)
+P=SX.sym('P',9+4*pars.max_no_of_vehicles+7+10)
 X=SX.sym('X',n_states,(pars.N+1))
 opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
@@ -55,7 +55,7 @@ def calc_force_fy(w,v,vperp,delta,lr_ratio,diff_f):
     fz0 = 3114#pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
     fzr = fz*(lr_ratio)/(lr_ratio + 1)
     fzl = fz*(1)/(lr_ratio + 1)
-    return utils.calc_force_from_slip_angle(-alpha,fzl,fz0) + utils.calc_force_from_slip_angle(-alpha,fzr,fz0) + diff_f   
+    return utils.calc_force_from_slip_angle(-alpha,fzl,fz0,P[-17]) + utils.calc_force_from_slip_angle(-alpha,fzr,fz0,P[-17]) + diff_f   
     
 
 def calc_force_ry(w,v,vperp,lr_ratio,diff_r,Gl,Gr):
@@ -64,7 +64,7 @@ def calc_force_ry(w,v,vperp,lr_ratio,diff_r,Gl,Gr):
     fz0 = 3114#pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
     fzr = fz*(lr_ratio)/(lr_ratio + 1)
     fzl = fz*(1)/(lr_ratio + 1)
-    return Gl*utils.calc_force_from_slip_angle(-alpha,fzl,fz0) + Gr*utils.calc_force_from_slip_angle(-alpha,fzr,fz0) + diff_r   
+    return Gl*utils.calc_force_from_slip_angle(-alpha,fzl,fz0,P[-17]) + Gr*utils.calc_force_from_slip_angle(-alpha,fzr,fz0,P[-17]) + diff_r   
 
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
     [0,0.1]])
