@@ -24,15 +24,15 @@ parameters:
   blocking_maneuver_cost: 0 # Cost to block vehicle behind (Not applicable now)
   
   
+  save_path_after: -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
+  file_path_follow: ./lap1.csv  # File to read the global reference line, if None then centre line will be taken
+  file_new_path: ./test.txt # File in which the new coordinates will be saved
+  
   steering_ratio: 10 # Ratio of Steering angle to wheel angle  
   moment_of_inertia: 504.7015 # Moment of inertia about the COM z axis
   L: 2.9 # Length of vehicle
   Lf: 1.66 # Distance of COM from front axle
   Lr: 1.24 # Distance of COM from rear axle
-  save_path_after: -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
-  file_path_follow: ./lap1.csv  # File to read the global reference line, if None then centre line will be taken
-  file_new_path: ./test.txt # File in which the new coordinates will be saved
-  
   vmax: 83.3
   road_coeff: 0.8
   mu_max: 0.8
