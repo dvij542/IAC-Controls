@@ -6,15 +6,15 @@ import math
 import numpy as np
 import time
 import rticonnextdds_connector as rti
-print("Started")
+print("Libraries imported")
 import matplotlib.pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
-print("Started1")
+print("Matplotlib imported")
 import util_funcs as utils
 import params as pars
 import cost_func as cf
-print("Started2")
+print("Optimization objectives loaded")
 global x_bot
 global y_bot
 global control_count
@@ -31,7 +31,7 @@ predicted_v = 0
 control_sample = np.zeros((2,pars.N))
 no_of_vehicles = 0
 
-def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth,opp_vehicle_detected,opp_vehicle_detected_state):
+def mpcCallback(no_of_vehicles, correction_params, speed_perp, yaw_rate, trajectory_to_follow, speeds_to_follow, curr_pos, angle_heading, curve, curve_l, curve_r, steering, speed, goaltheta, all_vehicles, roadwidth,opp_vehicle_detected,opp_vehicle_detected_state):
     x_bot = 0
     y_bot = 0
     ####### Special regions ############
@@ -61,12 +61,13 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
         current_pose[2] = speeds_to_follow[(mini+3)%k] # Set end speed of the path to be followed
         C = np.matmul(np.linalg.inv(M),points[:,1:])
         curve = [C[0],C[1],C[2],C[3]]
-        print(curve)
-        print(current_pose)
+        print("Equation of optimal racing line :", curve)
+        # print(current_pose)
     current_pose[0]= no_of_vehicles
     p=current_pose+curve+current_control
     for i in range(pars.max_no_of_vehicles) : 
         p = p+all_vehicles[i].tolist()
+    p = p + correction_params + [speed_perp,yaw_rate]
     p = p+curve_l+curve_r
     mindist = 10000
     minindex = 0
@@ -88,6 +89,7 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
         yc+=speed*sin(atan(curve[1]+2*curve[2]*xc+3*curve[3]*xc**2))
 
     print("min distance is ", mindist)
+    prev_path = -1
     if mindist < pars.dist_threshold :
         # Path from left
         vehicle = all_vehicles[minindex]
@@ -161,10 +163,17 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
         #cf for prev_path . If prev path = 1 , rightis prefereed. If prev path = 2 - left is preferred
 
         x = 0
-        if curve_l[0]<3 :
-            costl = costl + 10000
-        if curve_r[0]>-3 :
-            costr = costr + 10000
+        # if curve_l[0]<3 :
+        #     costl = costl + 10000
+        # if curve_r[0]>-3 :
+        #     costr = costr + 10000
+        
+        # To prefer following the earlier chosen path
+        if prev_path == 1 :
+            costr = costr - pars.dir_change_thres
+        if prev_path == 2 :
+            costr = costr - pars.dir_change_thres
+        
         if(costr<=costl):
             x = sr['x']
             opp_vehicle_detected_state[opp_target_id] = 1
@@ -202,6 +211,8 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
         u = reshape(x.T,2,pars.N).T      
         ctrlmsg = u[:,1]
         speed_output = u[:,0]
+        print("Steering angles :", ctrlmsg)
+        print("Throttle outputs :",speed_output)
         return ctrlmsg, speed_output
             
     control_sample[0,:] = 1
@@ -209,19 +220,24 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
     x0=reshape(control_sample,2*pars.N,1)
     #print(lbg)
     #print(ubg)
-    print(p)
+    print("Inputs passed for optimization:", p)
     so=cf.solver(x0=x0,p=p,lbx=cf.lbx,ubx=cf.ubx,lbg=cf.lbg,ubg=cf.ubg) 
     opp_vehicle_detected_state[:]= 0
     print("no vehicle detected. Reseting all opp_vehichle_detected_state to 0.")
     x=so['x']
     g=so['g']
+    s=so['g'][2*pars.N+4:]
     predicted_x = g[2*pars.N]
     predicted_y = g[2*pars.N+1]
     predicted_theta = g[2*pars.N+2]
     predicted_v = g[2*pars.N+3]
     u = reshape(x.T,2,pars.N).T
     ctrlmsg = u[:,1]
+    states = reshape(s.T,6,pars.N+1).T
     control_output = u[:,0]
+    print("Steering angles :", ctrlmsg)
+    print("Throttle outputs :",control_output)
+    print("States :", states)
     return ctrlmsg, control_output
 
 
@@ -235,7 +251,7 @@ def detect_anomaly(vehicles, no_of_vehicles) :
 required_gear = 1
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
-        url=file_path + "/../../Sensors_ego3.xml") as connector:
+        url=file_path + "/../../Sensors_ego"+str(pars.ego_id)+".xml") as connector:
 
     input1 = connector.get_input("roadSubscriber::roadReader1")
     input2 = connector.get_input("roadSubscriber::roadReader2")
@@ -251,20 +267,26 @@ with rti.open_connector(
     
     # Read data from the input, transform it and write it into the output
     print("Waiting for data...")
-    
+    # for slip in np.arange(0.0,0.1,0.0001) :
+    # print(utils.calc_force_from_slip_ratio(-0.05894731781384008,1430.7368765527035,3114,-1.0912234237664978e-05))
+    # print(utils.calc_force_from_slip_angle(-0.004902364341215198,6500,3500))
+    radius_of_curvature = 10000
     #Initialise
     curr_steering = 0
     curr_speed = 0
+    curr_speed_perp = 0
+    curr_yaw_rate = 0
     target_throttle = 0
+    curr_mu = 0.8
     aggregate = 0
     nr_dist = 0
     all_vehicles = np.ones((pars.max_no_of_vehicles,6))*10000
     opp_vehicle_detected = np.zeros((pars.max_no_of_vehicles),dtype = int)
-    opp_vehicle_detected_state = np.zeros((pars.max_no_of_vehicles),dtype = int)
+    opp_vehicle_detected_state = np.zeros((pars.max_vehicle_id),dtype = int)
     if pars.file_path_follow != None:
-        trajectory_to_follow = np.loadtxt(pars.file_path_follow,delimiter = ",")[:,[0,1,-2]].T
+        trajectory_to_follow = np.loadtxt(pars.file_path_follow,delimiter = ",")[:,[0,1,2]].T
     else :
-        trajectory_to_follow=None
+        trajectory_to_follow = None
     traj_followed = []
     itr = 0
     total_itr=0
@@ -415,6 +437,12 @@ with rti.open_connector(
         angle_heading = 0
         lsr = 0
         slip_angle = 0
+        gyl = 0
+        gyr = 0
+        diff_f = 0
+        diff_r = 0
+        lr_ratio = 0
+        diff_torque = 0
         for sample in input_speed.samples.valid_data_iter:
             data = sample.get_dictionary()
             vx = data['cdgSpeed_x']
@@ -423,23 +451,54 @@ with rti.open_connector(
             px = data['cdgPos_x']  
             py = data['cdgPos_y']  
             lsr = data['LSR']
+            
+            slip_angle = data['slipAngle']
             curr_engine_speed = data['EngineSpeed']
             forcex = data['tireForce_x']
-            normalz = data['groundNormal_z']
+            forcey = data['tireForce_y']
+            dist_covered = data['TraveledDistance']
+            normalz = data['tireForce_z']
             angle_heading = data['cdgPos_heading']
             slip_angle = data['slipAngle']
+            omega_dot = data['cdgAccel_heading']
             curr_pedal = data['gasPedal']
             curr_gear = data['GearEngaged']
-            curr_speed = math.sqrt(vx*vx+vy*vy+vz*vz)
+            curr_speed = vx#math.sqrt(vx*vx+vy*vy+vz*vz)
+            curr_speed_perp = vy
+            gt_steering = data['SteeringWheelAngle']
+            curr_yaw_rate = data['cdgSpeed_heading']
+            print("Normal forces :", normalz)
             print("Current State :",[px,py,angle_heading,curr_speed])
-            print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
+            print("GT torque : ",omega_dot*pars.moment_of_inertia)
+            print("Distance covered :",dist_covered)
+            print("Expected torque : ", (forcey[0]+forcey[1])*pars.Lf - (forcey[2]+forcey[3])*pars.Lr)
+            diff_torque = omega_dot*pars.moment_of_inertia - ((forcey[0]+forcey[1])*pars.Lf - (forcey[2]+forcey[3])*pars.Lr)
+            curr_mu = pars.mu_max - (pars.mu_max-pars.mu_min)/(pars.degradation_dist-dist_covered)
+            print("Current value of mu :", curr_mu)
+            # print("Predicted State :",[predicted_x,predicted_y,predicted_theta,predicted_v])
+            print("LSR :", lsr)
+            print("GT Force y :", forcey)
+            print("GT derived force y:", utils.calc_force_from_slip_ratio(slip_angle[0],normalz[0],3114,lsr[0]) \
+                , utils.calc_force_from_slip_ratio(slip_angle[1],normalz[1],3114,lsr[1]) \
+                , utils.calc_force_from_slip_ratio(slip_angle[2],normalz[2],3114,lsr[2]) \
+                , utils.calc_force_from_slip_ratio(slip_angle[3],normalz[3],3114,lsr[3]))
+            gyl = utils.get_gyk(slip_angle[2],normalz[2],3114,lsr[2])
+            gyr = utils.get_gyk(slip_angle[3],normalz[3],3114,lsr[3])
+            print("GRL and GYR :",gyl,gyr)
+            lr_ratio = forcey[1]/forcey[0]
+            diff_f = forcey[1] - utils.calc_force_from_slip_ratio(slip_angle[1],normalz[1],3114,lsr[1])
+            diff_r = forcey[3] - utils.calc_force_from_slip_ratio(slip_angle[3],normalz[3],3114,lsr[3])
             print("Current gear :",curr_gear)
             print("Current engine speed :",curr_engine_speed)
             print(pars.gear_change_engine_thres)
+            print("GT slip angle :", slip_angle)
+            rear_slip_angle = atan((curr_yaw_rate*pars.Lr - vy)/(vx))
+            front_slip_angle = -atan((curr_yaw_rate*pars.Lf + vy)/(vx)) + gt_steering/pars.steering_ratio
+            print("Predicted slip angle :" , rear_slip_angle, front_slip_angle)
             if curr_engine_speed > pars.gear_change_engine_thres and (curr_gear+1>required_gear):
                 required_gear = curr_gear + 1
             print("Required gear :",required_gear)
-            traj_followed.append([px,py,curr_speed,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],normalz[0],normalz[1],normalz[2],normalz[3],throttle,curr_engine_speed,curr_gear])
+            traj_followed.append([px,py,curr_speed,curr_speed_perp,curr_yaw_rate,curr_steering,lsr[0],lsr[1],lsr[2],lsr[3],forcex[0],forcex[1],forcex[2],forcex[3],throttle,curr_engine_speed,curr_gear])
             print("Current Speed : ", curr_speed)
 
         for l in range(no_of_vehicles):
@@ -483,6 +542,7 @@ with rti.open_connector(
                 ll1['c1'] = 0
                 ll1['c2'] = 0
                 ll1['c3'] = 0
+                ll1['curvatureRadius'] = 9999
                 ll2 = dict()
                 ll2['c0'] = 7
                 ll2['c1'] = 0
@@ -524,21 +584,22 @@ with rti.open_connector(
             curve_r = [(lr1['c0']+lr2['c0'])/2,(lr1['c1']+lr2['c1'])/2,(lr1['c2']+lr2['c2'])/2,(lr1['c3']+lr2['c3'])/2]
             if utils.under_ll_turn(px,py) :
                 curve_l[0] = curve_r[0] + pars.default_lane_width*sqrt(1+curve_r[1]**2)
-            curve_r[0] = curve_r[0] + 1*sqrt(1+curve_r[1]**2)
+            curve_r[0] = curve_r[0] + 1.5*sqrt(1+curve_r[1]**2)
             curve = [c0,c1,c2,c3]
             if utils.inside_region_2(px,py) :
                 curve = utils.get_center_line(px,py,angle_heading)
                 curve_l=curve.copy()
                 curve_r=curve.copy()
-                curve_l[0] = curve[0] + (pars.default_lane_width/2 - 3)*sqrt(1+curve[1]**2)
+                curve_l[0] = curve[0] + (pars.default_lane_width/2)*sqrt(1+curve[1]**2)
                 curve_r[0] = curve[0] - (pars.default_lane_width/2)*sqrt(1+curve[1]**2)
-            
+            radius_of_curvature = ll1['curvatureRadius']
+            print("Radius of Curvature", ll1['curvatureRadius'])
             print("Time", data['TimeOfUpdate'])
             print("No of vehicles : ", no_of_vehicles)
             print("Curve left : ", curve_l)
             print("Curve right : ", curve_r)
             print("Curve : ", curve)
-            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state))
+            curr_steering_array, target_speed_array = (mpcCallback(no_of_vehicles, [curr_mu,diff_torque,lr_ratio,gyl,gyr,diff_f,diff_r], curr_speed_perp, curr_yaw_rate, trajectory_to_follow[:2,:].T, trajectory_to_follow[2,:], np.array([px,py]), angle_heading, curve, curve_l, curve_r, curr_steering, curr_speed, 0, all_vehicles[:,:4], roadwidth, opp_vehicle_detected,opp_vehicle_detected_state, ))
             curr_steering = float(curr_steering_array[0])
             target_throttle = float(target_speed_array[0])
             out = {}
@@ -567,7 +628,7 @@ with rti.open_connector(
             out['BrakeMultiplicative'] = 0
             out['ClutchAdditive'] = 0
             out['ClutchMultiplicative'] = 0
-            out['GearboxAutoMode'] = 9
+            out['GearboxAutoMode'] = pars.gear_mode
             
             if pars.manual_gear_change :
                 out['GearboxAutoMode'] = 0

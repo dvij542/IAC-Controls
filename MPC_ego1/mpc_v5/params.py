@@ -8,7 +8,7 @@ manual_gear_change = params['parameters']['manual_gear_change']
 gear_change_engine_thres= params['parameters']['gear_change_engine_thres']
 start_throttle = params['parameters']['start_throttle']
 start_speed = params['parameters']['start_speed']
-
+max_vehicle_id = params['parameters']['max_vehicle_id']
 road_coeff = params['parameters']['road_coeff']
 vehicle_length_r = params['parameters']['vehicle_length_r']
 blocking_maneuver_cost = params['parameters']['blocking_maneuver_cost']

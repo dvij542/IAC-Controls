@@ -3,6 +3,7 @@ parameters:
   gear_change_engine_thres: 1000 # Threshold on engine speed to change gear
   start_throttle: 1 # Throttle to give at start
   start_speed: 10 # Speed in m/s to give start_throttle
+  max_vehicle_id: 20 # Maximimum value of vehicle id
 
   vmax: 83.3
   road_coeff: 0.7
@@ -23,14 +24,14 @@ parameters:
   Q_steering_over_limit: 0
   penalty_out_of_road: 6 # Penalise for planning path outside the road
   no_iters: 3
-  max_no_of_vehicles: 4
+  max_no_of_vehicles: 10
   
-  drafting_dist_x: 7
+  drafting_dist_x: 4
   drafting_dist_y: 3
   T: .04 # Time horizon
   N: 20 # Number of control intervals
   kp: 1 # For PID controller
-  obs_dist: 90 # To maintain from other vehicles at each time step
+  obs_dist: 60 # To maintain from other vehicles at each time step
   ki: 0
   kd: 0
   threshold: 20000

@@ -165,7 +165,6 @@ def mpcCallback(no_of_vehicles, trajectory_to_follow, speeds_to_follow, curr_pos
             costl = costl + 10000
         if curve_r[0]>-3 :
             costr = costr + 10000
-        costl=costl+1000
         if(costr<=costl):
             x = sr['x']
             opp_vehicle_detected_state[opp_target_id] = 1
@@ -236,7 +235,7 @@ def detect_anomaly(vehicles, no_of_vehicles) :
 required_gear = 1
 with rti.open_connector(
         config_name="MyParticipantLibrary::ObstacleParticipant",
-        url=file_path + "/../../Sensors_ego2.xml") as connector:
+        url=file_path + "/../../Sensors_ego3.xml") as connector:
 
     input1 = connector.get_input("roadSubscriber::roadReader1")
     input2 = connector.get_input("roadSubscriber::roadReader2")
@@ -261,7 +260,7 @@ with rti.open_connector(
     nr_dist = 0
     all_vehicles = np.ones((pars.max_no_of_vehicles,6))*10000
     opp_vehicle_detected = np.zeros((pars.max_no_of_vehicles),dtype = int)
-    opp_vehicle_detected_state = np.zeros((pars.max_no_of_vehicles),dtype = int)
+    opp_vehicle_detected_state = np.zeros((pars.max_vehicle_id),dtype = int)
     if pars.file_path_follow != None:
         trajectory_to_follow = np.loadtxt(pars.file_path_follow,delimiter = ",")[:,[0,1,-2]].T
     else :

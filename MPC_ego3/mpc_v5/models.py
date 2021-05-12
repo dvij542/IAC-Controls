@@ -3,22 +3,29 @@
 from casadi import *
 import params as pars
 import util_funcs as utils
+
+# STATES
 x=SX.sym('x')
 y=SX.sym('y')
 theta=SX.sym('theta')
 v=SX.sym('v')
+vperp=SX.sym('vperp')
+w=SX.sym('w')
+n_states=6
+states=vertcat(x,y,theta,v,vperp,w)
+
+#CONTROLS
+delta=SX.sym('delta')
+c=SX.sym('c')
+n_controls=2
+controls=vertcat(c,delta)
+
 a=SX.sym('a')
 xopp = SX.sym('xopp')
 yopp = SX.sym('yopp')
-states=vertcat(x,y,theta,v)
-c=SX.sym('c')
-delta=SX.sym('delta')
-controls=vertcat(c,delta)
 targ=vertcat(xopp,yopp)
-n_states=4
-n_controls=2
 U=SX.sym('U',n_controls,pars.N)
-P=SX.sym('P',9+4*pars.max_no_of_vehicles+8)
+P=SX.sym('P',9+4*pars.max_no_of_vehicles+7+10)
 X=SX.sym('X',n_states,(pars.N+1))
 opp = SX.sym('opp',2,pars.N)
 g=SX.sym('g',2,pars.N+2)
@@ -29,33 +36,59 @@ def calc_drafting_coeff_drag(x,y,xopp,yopp):
     val = pars.DCd0 + pars.DCdx*dx + pars.Dcdy*dy*(2*utils.sigmoid(dy*5)-1)
     return if_else((dx>0)*(val<1),val,1)
 
-def calc_force(c,v,x,y,xopp,yopp):
-    wind_force = pars.air_resistance_const*v*v*(1 + (calc_drafting_coeff_drag(x,y,xopp,yopp)-1)*(v/pars.vmax))
-    return ((c>0)*((v>=0)*(v<pars.gear_change_speeds[0])*c*pars.gear_throttles[0]+ \
+def calc_throttle_force(c,v) :
+    force = ((v>=0)*(v<pars.gear_change_speeds[0])*c*pars.gear_throttles[0]+ \
     (v>=pars.gear_change_speeds[0])*(v<pars.gear_change_speeds[1])*c*pars.gear_throttles[1]+ \
     (v>=pars.gear_change_speeds[1])*(v<pars.gear_change_speeds[2])*c*pars.gear_throttles[2]+ \
     (v>=pars.gear_change_speeds[2])*(v<pars.gear_change_speeds[3])*c*pars.gear_throttles[3]+ \
     (v>=pars.gear_change_speeds[3])*(v<pars.gear_change_speeds[4])*c*pars.gear_throttles[4]+ \
-    (v>=pars.gear_change_speeds[4])*c*pars.gear_throttles[5])-wind_force+(c<0)*c)
+    (v>=pars.gear_change_speeds[4])*c*pars.gear_throttles[5])
+    return force
 
+def calc_force_rx(c,v,x,y,xopp,yopp,vperp):
+    wind_force = pars.air_resistance_const*v*v*(1 + (calc_drafting_coeff_drag(x,y,xopp,yopp)-1)*(v/pars.vmax))
+    return ((c>0)*calc_throttle_force(c,v)-wind_force+(c<0)*c)
 
+def calc_force_fy(w,v,vperp,delta,lr_ratio,diff_f):
+    alpha = -atan((w*pars.Lf + vperp)/(v)) + delta/pars.steering_ratio
+    fz = pars.fz0*pars.Lr/(pars.Lf+pars.Lr) + pars.lift_coeff_f*v**2
+    fz0 = 3114#pars.fz0*pars.Lr/(pars.Lf+pars.Lr)
+    fzr = fz*(lr_ratio)/(lr_ratio + 1)
+    fzl = fz*(1)/(lr_ratio + 1)
+    return utils.calc_force_from_slip_angle(-alpha,fzl,fz0,P[-17]) + utils.calc_force_from_slip_angle(-alpha,fzr,fz0,P[-17]) + diff_f   
+    
+
+def calc_force_ry(w,v,vperp,lr_ratio,diff_r,Gl,Gr):
+    alpha = atan((w*pars.Lr - vperp)/(v))
+    fz = pars.fz0*pars.Lf/(pars.Lf+pars.Lr) + pars.lift_coeff_r*v**2
+    fz0 = 3114#pars.fz0*pars.Lf/(pars.Lf+pars.Lr)
+    fzr = fz*(lr_ratio)/(lr_ratio + 1)
+    fzl = fz*(1)/(lr_ratio + 1)
+    return Gl*utils.calc_force_from_slip_angle(-alpha,fzl,fz0,P[-17]) + Gr*utils.calc_force_from_slip_angle(-alpha,fzr,fz0,P[-17]) + diff_r   
 
 R1=SX([[0,0],  # Weights for magnitude of speed and steering angles
-    [0,1]])
-R2=SX([[0,0],   # Weights for rate of change of speed and steering angle
-    [0,5]])
+    [0,0.1]])
+R2=SX([[2,0],   # Weights for rate of change of speed and steering angle
+    [0,50]])
+
+print(pars.moment_of_inertia)
+# UPDATE RULE
 rhs=[
-        (v)*cos(theta+((atan(tan(delta/9.9)))/2)),
-        (v)*sin(theta+((atan(tan(delta/9.9)))/2)),
-        (v)*sin(atan(tan(delta/9.9)))/pars.L,
-        calc_force(c,v,x,y,xopp,yopp)/pars.mass
+        v*cos(theta) - vperp*sin(theta),
+        v*sin(theta) + vperp*cos(theta),
+        w,
+        (calc_force_rx(c,v,x,y,xopp,yopp,vperp) - calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*sin(delta/pars.steering_ratio) + pars.mass*vperp*w)/pars.mass, # Including drafting
+        (calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13]) + calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*cos(delta/pars.steering_ratio) - pars.mass*v*w)/pars.mass,
+        (P[-16]+calc_force_fy(w,v,vperp,delta,P[-15],P[-12])*pars.Lf*cos(delta/pars.steering_ratio) - calc_force_ry(w,v,vperp,P[-15],P[-11],P[-14],P[-13])*pars.Lr)/pars.moment_of_inertia
         # (c>=0)*calc_torque_from_gear_speed(car_speed_to_gear_speed(v),c)/(mass*get_gear_radii(v)) + (c<0)*c
     ]
 rhs=vertcat(*rhs)
 f=Function('f',[states,controls,targ],[rhs])
 
-X[:-1,0]=0
-X[-1,0]=P[7]         
+X[:-3,0]=0
+X[-3,0]=P[7]   
+X[-2,0]=P[-10]
+X[-1,0]=P[-9]
 itr = SX.sym('I',pars.no_iters,pars.N)
 itr_l = SX.sym('Il',pars.no_iters,pars.N)
 itr_r = SX.sym('Ir',pars.no_iters,pars.N)

@@ -75,8 +75,7 @@ for k in range(0,pars.N,1):
         (st[1]-models.F_val_r[0,k])**2)**(1/2)*(2*(st[1]<models.F_val_r[0,k])-1)
     
     Radius = (((1+models.F_dash[0,k]**2)**(3/2))/(2*models.P[5]+6*models.P[6]*models.itr[pars.no_iters-1,k]))
-    dist = (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5)
-    models.R[0,0] = Radius/(Radius + utils.sigmoid(10*dist)*dist - (1-utils.sigmoid(10*dist))*dist)
+    models.R[0,0] = Radius/(Radius - (st[1]-models.F_val[0,k]-models.F_dash[0,k]*(st[0]-models.itr[pars.no_iters-1,k]))/(1+models.F_dash[0,k]**2)**(0.5))
     models.g[0,k] =  0 #distance_l
     models.g[1,k] =  0 #distance_r
     models.pen[0,k] = distance_l + pars.tolerance
@@ -182,7 +181,7 @@ for k in range (1,(2*pars.N),2):
     # print(max_steering_angle)
     max_steering_angle = min(math.pi,float(max_steering_angle))
     # print(max_steering_angle)
-    lbx[k]=-0.001
+    lbx[k]=-max_steering_angle
     ubx[k]=max_steering_angle
     # lbx[k] = -math.pi
     # ubx[k] = math.pi
