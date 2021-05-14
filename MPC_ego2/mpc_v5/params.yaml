@@ -14,17 +14,19 @@ parameters:
   Q_ang: 5 # Cost on angle difference from racing line
   tolerance: 1 # Tolerance distance to keep from left and right lane boundaries
   
+  # For improving overtakig strategy
   Q_drafting: 2 # Weight for aligning ego vehicle towards the back of lead vehicle 
   Q_dist: 0  # Weight for distance from the racing line 
-  Q_steering_over_limit: 0 # Cost on steering over calculated limit which migh cause unstability (Not much effective and slows down)
   obs_dist: 100 # Cost to maintain from other vehicles at each time step
+  drafting_dist_x_max: 10 # Threshold distance to change objective from drafting to obstacle avoidance when relative velocity is vmax
+  drafting_dist_x_min: 4 # Threshold distance to change objective from drafting to obstacle avoidance when relative velocity is 0
+  drafting_dist_y: 3 # Threshold distance in perp direction to target vehicle to consider obstacle avoidance 
+  
+  Q_steering_over_limit: 0 # Cost on steering over calculated limit which migh cause unstability (Not much effective and slows down)
   k_lat_slip: 0 # Cost on lateral slip
   k_vel_follow: 3 # To follow the speed given by the racing line if current speed is greater than required speed
   penalty_out_of_road: 6 # Penalise for planning path outside the track
   dir_change_thres: 10 # Threshold to change the direction of overatake from the previously planned version
-  drafting_dist_x_max: 10 # Threshold distance to change objective from drafting to obstacle avoidance when relative velocity is vmax
-  drafting_dist_x_min: 4 # Threshold distance to change objective from drafting to obstacle avoidance when relative velocity is 0
-  drafting_dist_y: 3 # Threshold distance in perp direction to target vehicle to consider obstacle avoidance 
   blocking_maneuver_cost: 0 # Cost to block vehicle behind (Not applicable now)
   
   save_path_after: -1 # Save path after these no of iterations for visualization, -1 if path is not to be saved
