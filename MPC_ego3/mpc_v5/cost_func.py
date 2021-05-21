@@ -136,7 +136,7 @@ for k in range(0,pars.N,1):
         models.other_vehicle_v[t,k+1] = models.other_vehicle_v[t,k]
     models.obj = models.obj + pars.Q_ang*(atan(models.F_dash[0,k])-st[2])**2
     friction_factor = sqrt(models.P[-17]/0.8)
-    required_val = (Vi + (k+1)*(Vf-Vi)/pars.N)*5/18*friction_factor - 8
+    required_val = (Vi + (k+1)*(Vf-Vi)/pars.N)*5/18*friction_factor - pars.k_speed_follow_tolerance
     # utils.sigmoid(-st[3]+required_val)
     models.obj = models.obj - \
         pars.Q_along*st[3]*cos(atan(models.F_dash[0,k])-st[2])*models.R[0,0]/3 # To move along the raceline
